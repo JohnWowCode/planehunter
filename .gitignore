@@ -2,3 +2,7 @@ node_modules/
 .vercel
 .DS_Store
 *.log
+
+# generated when running verify.js
+all.js
+vm.js

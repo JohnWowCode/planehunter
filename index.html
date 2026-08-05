@@ -20,13 +20,16 @@
    The interface stays in night tones so it still reads at noon.
    ========================================================== */
 :root{
-  --sky-top:#06101F; --sky-mid:#0A1A30; --sky-horizon:#122744; --sky-glow:#1B3557;
+  /* Flat palette. Every surface is one opaque colour — no gradients, no glass,
+     no glow. Depth is carried by hue steps and 1px rules, nothing else. */
+  --sky:#06101F;
   --star:0.9;
-  --panel:rgba(8,19,32,.68);
-  --panel-2:rgba(11,26,42,.84);
-  --panel-3:rgba(16,36,56,.94);
-  --line:rgba(160,208,240,.16);
-  --line-2:rgba(160,208,240,.3);
+  --panel:#0C1A2A;
+  --panel-2:#0A1624;
+  --panel-3:#14263A;
+  --line:#223546;
+  --line-2:#374E62;
+  --r:6px;
   --ink:#EAF5FF; --ink-2:#9BBBD4; --ink-3:#66889F;
   --cyan:#6FD8FF; --cyanD:#238FC4;
   --amber:#FFC857; --magenta:#FF6BC1; --red:#FF5D73;
@@ -38,12 +41,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overscroll-behavior:none}
-body{font-family:var(--body);color:var(--ink);background:var(--sky-top);
+body{font-family:var(--body);color:var(--ink);background:var(--sky);
   -webkit-font-smoothing:antialiased;touch-action:manipulation}
-#skybg{position:fixed;inset:0;z-index:-3;background:var(--sky-top);transition:background 1.5s linear}
-#skyhz{position:fixed;left:0;right:0;bottom:0;height:56%;z-index:-2;
-  background:linear-gradient(180deg,transparent,var(--sky-mid) 44%,var(--sky-horizon) 79%,var(--sky-glow));
-  transition:background 1.5s linear}
+#skybg{position:fixed;inset:0;z-index:-3;background:var(--sky);transition:background 1.5s linear}
 #stars{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--star);transition:opacity 2s linear}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
@@ -52,19 +52,19 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;pad
 
 header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px;
   padding:calc(9px + env(safe-area-inset-top)) 14px 9px;background:var(--panel-2);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--line)}
 .logo{width:34px;height:34px;flex:none}
 .wm .a{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.2em;display:block;line-height:.95}
 .wm .b{font-family:var(--mono);font-size:7.5px;letter-spacing:.28em;color:var(--ink-3);display:block;margin-top:3px}
 .spacer{flex:1}
 .pill{font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;color:var(--ink-2);border:1px solid var(--line);
-  border-radius:20px;padding:5px 9px;display:flex;align-items:center;gap:6px;background:rgba(6,16,28,.5)}
-.pill .d{width:5px;height:5px;border-radius:50%;background:var(--ink-3)}
-.pill.on{color:var(--cyan);border-color:rgba(111,216,255,.42)}
-.pill.on .d{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:bl 2s infinite}
+  border-radius:var(--r);padding:5px 9px;display:flex;align-items:center;gap:6px;background:var(--panel)}
+.pill .d{width:5px;height:5px;background:var(--ink-3)}
+.pill.on{color:var(--cyan);border-color:var(--cyanD)}
+.pill.on .d{background:var(--cyan);animation:bl 2s infinite}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
-.ib{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;
-  border:1px solid var(--line);background:rgba(6,16,28,.5);color:var(--ink-2);font-size:15px}
+.ib{width:34px;height:34px;border-radius:var(--r);display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font-size:15px}
 .ib:active{background:var(--panel-3)}
 .eyebrow{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--ink-3);text-transform:uppercase}
 .view{display:none;flex:1;flex-direction:column}
@@ -73,15 +73,14 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 
 .scopewrap{padding:14px 14px 6px}
 .scopeglass{position:relative;border-radius:50%;padding:8px;background:var(--panel);
-  border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 16px 40px -22px #000}
+  border:1px solid var(--line)}
 .scope{position:relative;width:100%;aspect-ratio:1}
 .scope svg{width:100%;height:100%;display:block;overflow:visible}
-.sweep{position:absolute;inset:0;border-radius:50%;pointer-events:none;
-  background:conic-gradient(from 0deg,rgba(111,216,255,.18) 0deg,rgba(111,216,255,0) 50deg,transparent 360deg);
-  animation:sw 4.6s linear infinite;
-  -webkit-mask:radial-gradient(circle,#000 0 49.4%,transparent 50%);
-  mask:radial-gradient(circle,#000 0 49.4%,transparent 50%)}
+/* Solid sweep hand — one flat line, no cone, no fade. */
+.sweep{position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden;
+  animation:sw 4.6s linear infinite}
+.sweep::before{content:'';position:absolute;left:50%;top:4%;width:1px;height:46%;
+  margin-left:-.5px;background:var(--cyanD)}
 @keyframes sw{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.sweep{animation:none;opacity:.4}}
 .rt{font-family:var(--mono);font-size:8px;fill:var(--ink-3)}
@@ -91,91 +90,99 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .meta b{color:var(--cyan);font-weight:500}
 
 .list{padding:0 14px 22px;display:flex;flex-direction:column;gap:8px}
-.ct{display:flex;align-items:stretch;overflow:hidden;border-radius:14px;background:var(--panel);
+.ct{display:flex;align-items:stretch;overflow:hidden;border-radius:var(--r);background:var(--panel);
   border:1px solid var(--line)}
 .ct .edge{width:4px;flex:none;background:var(--r-common)}
 .ct .core{flex:1;padding:9px 12px;min-width:0}
 .ct .l1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .ct .call{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.07em;line-height:1}
 .ct .typ{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;
-  border:1px solid var(--line-2);padding:2px 6px;border-radius:5px}
+  border:1px solid var(--line-2);padding:2px 6px;border-radius:3px}
 .ct .tag{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.13em;padding:3px 6px;
-  border-radius:5px;color:#04101B}
+  border-radius:3px;color:#04101B}
 .ct .l2{font-family:var(--mono);font-size:9.5px;color:var(--ink-2);margin-top:5px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ct .l3{font-size:12px;color:var(--ink-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ct .act{flex:none;width:70px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;
   font-size:12.5px;letter-spacing:.11em;color:var(--cyan);border-left:1px solid var(--line);
-  background:rgba(111,216,255,.08);line-height:1.15;text-align:center}
-.ct .act:active{background:rgba(111,216,255,.3);color:#04101B}
+  background:var(--panel-3);line-height:1.15;text-align:center}
+.ct .act:active{background:var(--cyan);color:#04101B}
 .ct.got .act{color:var(--ink-3);background:none}
-.empty{padding:30px 20px;text-align:center;margin:0 14px;border-radius:16px;background:var(--panel);
+.empty{padding:30px 20px;text-align:center;margin:0 14px;border-radius:var(--r);background:var(--panel);
   border:1px solid var(--line)}
 .empty h3{font-family:var(--disp);font-size:20px;letter-spacing:.12em;margin:0 0 7px}
 .empty p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--disp);
-  font-weight:600;font-size:15px;letter-spacing:.13em;padding:13px 18px;border-radius:12px;
+  font-weight:600;font-size:15px;letter-spacing:.13em;padding:13px 18px;border-radius:var(--r);
   border:1px solid var(--line-2);color:var(--ink);background:var(--panel-3)}
-.btn:active{background:rgba(111,216,255,.2)}
-.btn.solid{background:var(--cyan);color:#04121C;border-color:transparent}
-.btn.solid:active{filter:brightness(.88)}
-.btn.danger{border-color:rgba(255,93,115,.4);color:var(--red)}
+.btn:active{background:var(--cyanD);color:#04121C}
+.btn.solid{background:var(--cyan);color:#04121C;border-color:var(--cyan)}
+.btn.solid:active{background:var(--cyanD)}
+.btn.danger{border-color:var(--red);color:var(--red)}
 .btn.wide{width:100%}
-.btn.sm{font-size:13px;padding:9px 13px;border-radius:9px}
+.btn.sm{font-size:13px;padding:9px 13px}
 
 /* ---- HUNT ---- */
 .hunt{position:fixed;inset:0;z-index:10;overflow:hidden;background:#04101C;display:none;
   touch-action:none;user-select:none;-webkit-user-select:none}
 .hunt.on{display:block}
 #cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
-#fakesky{position:absolute;inset:0;
-  background:linear-gradient(180deg,var(--sky-top),var(--sky-mid) 46%,var(--sky-horizon) 77%,var(--sky-glow))}
+#fakesky{position:absolute;inset:0;background:var(--sky)}
 .hudtop{position:absolute;top:0;left:0;right:0;z-index:6;padding:calc(env(safe-area-inset-top) + 8px) 12px 0;
   display:flex;justify-content:center}
 .compass{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:0;right:0;height:28px;z-index:5;
-  -webkit-mask:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent);
-  mask:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent)}
+  overflow:hidden}
 .compass svg{width:100%;height:100%}
 #reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 #mkHost{position:absolute;inset:0;z-index:3;pointer-events:none}
-.mk{position:absolute;left:0;top:0;will-change:transform;display:flex;flex-direction:column;
-  align-items:center;gap:3px}
-.mk .box{padding:3px 7px;border-radius:7px;background:rgba(5,15,26,.66);border:1px solid var(--line-2);
-  font-family:var(--mono);font-size:9px;white-space:nowrap;color:var(--ink-2)}
-.mk .box b{font-family:var(--disp);font-size:12.5px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
-.mk.lockon .box{border-color:var(--cyan);color:var(--cyan);background:rgba(6,34,52,.85)}
+
+/* A marker is a zero-size anchor sitting exactly on the aircraft. Everything it
+   draws is pushed OUTWARD from that point: four corner brackets that frame the
+   aircraft, and a label hung below them. The middle stays empty on purpose —
+   when you can actually see the plane, nothing is painted over it. */
+.mk{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
+.mk .brk{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;
+  stroke:var(--r-common);stroke-width:1.5;fill:none;opacity:.9}
+.mk .box{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;
+  padding:2px 6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--line-2);
+  font-family:var(--mono);font-size:9px;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+.mk .box b{font-family:var(--disp);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+.mk .box i{font-style:normal;font-size:9px;line-height:1;color:var(--ink-3)}
+.mk.lockon .brk{stroke:var(--cyan);stroke-width:2.2;opacity:1}
+.mk.lockon .box{border-color:var(--cyan);color:var(--cyan);background:var(--panel-3)}
 .hbottom{position:absolute;left:0;right:0;bottom:calc(80px + env(safe-area-inset-bottom));padding:0 14px;
   z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px}
 .hmsg{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink-2);text-align:center;
-  background:rgba(5,15,26,.7);border:1px solid var(--line);border-radius:20px;padding:8px 14px;max-width:96%}
-.hmsg.hot{color:var(--cyan);border-color:rgba(111,216,255,.5)}
+  background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);padding:8px 14px;max-width:96%}
+.hmsg.hot{color:var(--cyan);border-color:var(--cyan)}
+.hmsg.warn{color:var(--amber);border-color:var(--amber)}
 .guide{position:absolute;z-index:5;font-family:var(--disp);font-weight:700;font-size:13px;
   letter-spacing:.1em;color:var(--cyan);display:flex;align-items:center;gap:6px;
-  background:rgba(5,15,26,.75);border:1px solid rgba(111,216,255,.4);border-radius:20px;padding:7px 11px;
+  background:var(--panel-2);border:1px solid var(--cyan);border-radius:var(--r);padding:7px 11px;
   top:50%;transform:translateY(-50%);white-space:nowrap}
 
-.overlay{position:fixed;inset:0;z-index:90;background:rgba(2,8,14,.88);display:none;
+.overlay{position:fixed;inset:0;z-index:90;background:#040C15;display:none;
   flex-direction:column;justify-content:center;padding:16px;overflow-y:auto}
 .overlay.on{display:flex}
 .stage{perspective:1500px;max-width:420px;width:100%;margin:auto}
 .c3d{position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.85,.3,1)}
 .c3d.flip{transform:rotateY(180deg)}
-.face{border-radius:18px;overflow:hidden;backface-visibility:hidden;background:var(--panel-3);
-  border:1px solid var(--line-2);box-shadow:0 26px 60px -26px #000}
+.face{border-radius:var(--r);overflow:hidden;backface-visibility:hidden;background:var(--panel-3);
+  border:1px solid var(--line-2)}
 .face.back{position:absolute;inset:0;transform:rotateY(180deg);display:flex;flex-direction:column}
 .ctop{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
 .ctop .no{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-2)}
 .ctop .tier{margin-left:auto;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.16em;
-  padding:4px 8px;border-radius:6px;color:#04101B}
+  padding:4px 8px;border-radius:3px;color:#04101B}
 .art{position:relative;aspect-ratio:1.62;display:grid;place-items:center;padding:14px;
-  background:rgba(5,15,26,.45);border-bottom:1px solid var(--line)}
+  background:var(--panel);border-bottom:1px solid var(--line)}
 .art svg{width:100%;height:100%}
 .art .wk{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:8px;letter-spacing:.13em;
-  color:var(--ink-2);border:1px solid var(--line);border-radius:5px;padding:3px 7px}
+  color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:3px 7px}
 .art .sb{position:absolute;bottom:9px;left:12px;right:12px}
 .art .sb .t{font-family:var(--mono);font-size:7px;letter-spacing:.13em;color:var(--ink-3);margin-bottom:3px}
-.art .sb .bar{height:3px;background:rgba(160,208,240,.16);border-radius:3px;overflow:hidden}
+.art .sb .bar{height:3px;background:var(--line);overflow:hidden}
 .art .sb .bar i{display:block;height:100%;background:var(--cyan)}
 .cname{padding:13px 13px 5px}
 .cname h2{font-family:var(--disp);font-weight:700;font-size:31px;line-height:.95;margin:0}
@@ -206,7 +213,7 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .tapf{text-align:center;font-family:var(--mono);font-size:8.5px;letter-spacing:.17em;color:var(--ink-3);padding:11px 0 0}
 
 .tabs{display:flex;padding:0 10px;gap:2px;position:sticky;top:56px;z-index:40;overflow-x:auto;
-  scrollbar-width:none;background:var(--panel-2);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  scrollbar-width:none;background:var(--panel-2);border-bottom:1px solid var(--line)}
 .tabs::-webkit-scrollbar{display:none}
 .tab{font-family:var(--disp);font-weight:600;font-size:13.5px;letter-spacing:.15em;padding:12px 11px;
   color:var(--ink-3);border-bottom:2px solid transparent;white-space:nowrap}
@@ -215,15 +222,15 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .prog .r{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .prog .big{font-family:var(--disp);font-weight:700;font-size:27px}
 .prog .big small{color:var(--ink-3);font-size:14px;font-weight:500}
-.prog .bar{height:5px;background:rgba(160,208,240,.14);border-radius:4px;overflow:hidden;margin-top:9px}
+.prog .bar{height:5px;background:var(--line);overflow:hidden;margin-top:9px}
 .prog .bar i{display:block;height:100%;background:var(--cyan);transition:width .5s}
 .filt{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none}
 .filt::-webkit-scrollbar{display:none}
-.filt button{font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:6px 10px;border-radius:14px;
+.filt button{font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:6px 10px;border-radius:3px;
   border:1px solid var(--line);color:var(--ink-3);white-space:nowrap;background:var(--panel)}
-.filt button.on{color:var(--cyan);border-color:rgba(111,216,255,.45);background:rgba(111,216,255,.12)}
+.filt button.on{color:#04101B;border-color:var(--cyan);background:var(--cyan)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:8px;padding:4px 14px 26px}
-.cell{position:relative;border-radius:13px;padding:9px 7px 7px;min-height:112px;display:flex;
+.cell{position:relative;border-radius:var(--r);padding:9px 7px 7px;min-height:112px;display:flex;
   flex-direction:column;text-align:left;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
 .cell.blank{opacity:.34;border-style:dashed;justify-content:center;align-items:center}
 .cell.blank .q{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--ink-3);letter-spacing:.12em}
@@ -235,9 +242,9 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .cell::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--r-common)}
 .cell.blank::before{display:none}
 .cell .n{position:absolute;top:6px;right:7px;font-family:var(--mono);font-size:8.5px;font-weight:700;
-  color:#04101B;background:var(--cyan);border-radius:9px;padding:1px 6px}
+  color:#04101B;background:var(--cyan);border-radius:3px;padding:1px 6px}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;padding:4px 14px 26px}
-.fc{position:relative;border-radius:13px;padding:11px 5px 8px;display:flex;flex-direction:column;
+.fc{position:relative;border-radius:var(--r);padding:11px 5px 8px;display:flex;flex-direction:column;
   align-items:center;gap:5px;text-align:center;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
 .fc.locked{opacity:.28;border-style:dashed}
 .fc .fl{font-size:31px;line-height:1}
@@ -246,9 +253,9 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .fc .nm{font-size:8.5px;color:var(--ink-3);line-height:1.2;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;max-width:100%}
 .fc .n{position:absolute;top:5px;right:6px;font-family:var(--mono);font-size:8px;font-weight:700;
-  color:#04101B;background:var(--cyan);border-radius:8px;padding:1px 5px}
+  color:#04101B;background:var(--cyan);border-radius:3px;padding:1px 5px}
 .rows{padding:4px 14px 26px;display:flex;flex-direction:column;gap:6px}
-.ri{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;width:100%;text-align:left;
+.ri{display:flex;align-items:center;gap:10px;border-radius:var(--r);padding:10px 12px;width:100%;text-align:left;
   background:var(--panel);border:1px solid var(--line)}
 .ri.locked{opacity:.3;border-style:dashed}
 .ri .fl{font-size:19px;flex:none;line-height:1}
@@ -258,8 +265,8 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
 .ri .nm{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ri .sub{font-family:var(--mono);font-size:9px;color:var(--ink-3);flex:none}
 .ri .n{font-family:var(--mono);font-size:9px;font-weight:700;color:#04101B;background:var(--cyan);
-  border-radius:9px;padding:2px 7px;flex:none}
-.li{display:flex;overflow:hidden;border-radius:12px;margin-bottom:7px;background:var(--panel);border:1px solid var(--line)}
+  border-radius:3px;padding:2px 7px;flex:none}
+.li{display:flex;overflow:hidden;border-radius:var(--r);margin-bottom:7px;background:var(--panel);border:1px solid var(--line)}
 .li .edge{width:4px;flex:none}
 .li .c{padding:9px 12px;flex:1;min-width:0}
 .li .t{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.06em}
@@ -267,17 +274,16 @@ header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 nav{position:fixed;bottom:0;left:0;right:0;z-index:80;display:flex;max-width:540px;margin:0 auto;
-  background:var(--panel-2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  background:var(--panel-2);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;padding:10px 3px 11px;display:flex;flex-direction:column;align-items:center;gap:4px;
   font-family:var(--disp);font-weight:600;font-size:10.5px;letter-spacing:.15em;color:var(--ink-3)}
 nav button svg{width:19px;height:19px;opacity:.6}
 nav button.on{color:var(--cyan)}
 nav button.on svg{opacity:1}
 
-.sheet{position:fixed;inset:0;z-index:95;background:rgba(2,8,14,.84);display:none;align-items:flex-end}
+.sheet{position:fixed;inset:0;z-index:95;background:#040C15;display:none;align-items:flex-end}
 .sheet.on{display:flex}
-.sin{width:100%;max-width:540px;margin:0 auto;border-radius:20px 20px 0 0;
+.sin{width:100%;max-width:540px;margin:0 auto;border-radius:var(--r) var(--r) 0 0;
   padding:20px 16px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
   animation:up .28s cubic-bezier(.2,.9,.3,1);background:var(--panel-3);border-top:1px solid var(--line-2)}
 @keyframes up{from{transform:translateY(30px)}to{transform:none}}
@@ -285,24 +291,24 @@ nav button.on svg{opacity:1}
 .sin p{font-size:12.5px;color:var(--ink-2);line-height:1.55;margin:0 0 15px}
 .f{margin-bottom:13px}
 .f label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--ink-3);margin-bottom:6px}
-.f input:not([type=range]){width:100%;background:rgba(4,12,22,.7);border:1px solid var(--line);color:var(--ink);
-  font-family:var(--mono);font-size:13px;padding:11px;border-radius:10px}
+.f input:not([type=range]){width:100%;background:var(--sky);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:13px;padding:11px;border-radius:var(--r)}
 .f input:focus{outline:none;border-color:var(--cyan)}
 .f input[type=range]{width:100%;accent-color:#6FD8FF}
 .two{display:flex;gap:9px}.two>*{flex:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px}
-.chips button{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-radius:14px;
+.chips button{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-radius:3px;
   padding:7px 10px;color:var(--ink-2);background:var(--panel)}
 .chips button:active{border-color:var(--cyan);color:var(--cyan)}
 .toast{position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:99;max-width:88vw;
   font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:.08em;padding:11px 17px;
-  border-radius:22px;background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
+  border-radius:var(--r);background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
   opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(-7px)}
 </style>
 </head>
 <body>
-<div id="skybg"></div><div id="skyhz"></div><canvas id="stars"></canvas>
+<div id="skybg"></div><canvas id="stars"></canvas>
 
 <div class="app">
   <header>
@@ -946,7 +952,7 @@ function save(){clearTimeout(sT);sT=setTimeout(async()=>{try{await window.storag
 
 const state={lat:39.7392,lon:-104.9903,label:"Denver, CO",rangeNm:40,live:false,proxy:"",
   traffic:[],dexTab:"types",filter:"ALL",
-  hasCompass:false,alpha:0,beta:90,gamma:0,screenAngle:0,
+  hasCompass:false,trueNorth:false,alpha:0,beta:90,gamma:0,screenAngle:0,
   viewYaw:0,viewPitch:20,camOn:false,huntOn:false,trackId:null,
   lockId:null,lockMs:0,lastFrame:0};
 
@@ -999,6 +1005,92 @@ function lookAngles(){
   return {hdg:(toDeg(Math.atan2(f[0],f[1]))+360)%360, elev:toDeg(Math.asin(Math.max(-1,Math.min(1,f[2]))))};
 }
 
+/* ---- Orientation filtering ----------------------------------------------
+   Raw deviceorientation is not usable for pointing at the sky as-is:
+
+   1. Aiming upward puts beta near 90deg, which is exactly the singularity of the
+      Z-X-Y decomposition the browser reports. There, alpha and gamma can swing
+      through tens of degrees while describing almost the same rotation, so
+      filtering the three angles separately is meaningless. We convert each
+      sample to a quaternion, filter THAT, and convert back — the rotation is
+      well behaved even where its Euler angles are not.
+
+   2. Nothing was filtered at all before. Indoors the magnetometer is dragged
+      around by steel and wiring, so readings jitter several degrees sample to
+      sample and the markers tore across the screen. The filter is adaptive:
+      hold the phone still and it damps hard, swing it and it lets go, so the
+      damping never turns into lag.                                           */
+function eulerToQuat(a,b,g){
+  const ha=toRad(a)/2, hb=toRad(b)/2, hg=toRad(g)/2;
+  const cA=Math.cos(ha),sA=Math.sin(ha),cB=Math.cos(hb),sB=Math.sin(hb),cG=Math.cos(hg),sG=Math.sin(hg);
+  return [cA*cB*cG-sA*sB*sG, cA*sB*cG-sA*cB*sG, cA*cB*sG+sA*sB*cG, sA*cB*cG+cA*sB*sG];
+}
+function quatToEuler(q){
+  const [w,x,y,z]=q;
+  const m00=1-2*(y*y+z*z), m01=2*(x*y-w*z), m10=2*(x*y+w*z), m11=1-2*(x*x+z*z);
+  const m20=2*(x*z-w*y),   m21=2*(y*z+w*x), m22=1-2*(x*x+y*y);
+  const sb=Math.max(-1,Math.min(1,m21)), b=toDeg(Math.asin(sb));
+  // Only EXACTLY at the singularity is the alpha/gamma split undefined. A
+  // hair off it atan2 still resolves both correctly — including the sign flip
+  // that refolds beta back past vertical — so this guard has to be tight. A
+  // loose one throws away that refold and mis-aims the view by its own width,
+  // right in the steep-up pose you actually hold to look at aircraft.
+  if(1-Math.abs(sb)<1e-13)
+    return [(toDeg(Math.atan2(m10,m00))+360)%360, b, 0];
+  return [(toDeg(Math.atan2(-m01,m11))+360)%360, b, toDeg(Math.atan2(-m20,m22))];
+}
+function slerp(a,b,t){
+  let d=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3];
+  if(d<0){b=[-b[0],-b[1],-b[2],-b[3]];d=-d;} // take the short way round
+  let o;
+  if(d>0.9995){ // all but identical — a straight blend is stable, slerp is not
+    o=[0,1,2,3].map(i=>a[i]+(b[i]-a[i])*t);
+  } else {
+    const th=Math.acos(Math.min(1,d)), s=Math.sin(th);
+    const k0=Math.sin((1-t)*th)/s, k1=Math.sin(t*th)/s;
+    o=[0,1,2,3].map(i=>a[i]*k0+b[i]*k1);
+  }
+  const n=Math.hypot(o[0],o[1],o[2],o[3])||1;
+  return o.map(v=>v/n);
+}
+function qDelta(a,b){ // conj(a)*b — the rotation from a to b
+  const [aw,ax,ay,az]=a,[bw,bx,by,bz]=b;
+  return [aw*bw+ax*bx+ay*by+az*bz,
+          aw*bx-ax*bw-ay*bz+az*by,
+          aw*by-ay*bw-az*bx+ax*bz,
+          aw*bz-az*bw-ax*by+ay*bx];
+}
+const ORI_TAU_MOVING=0.05, ORI_TAU_STILL=0.75; // seconds
+const ORI_TREND=0.30;                          // trend window, seconds
+let oriQ=null, oriRaw=null, oriTs=0, devVec=[0,0,0], devMag=0;
+function feedOrientation(a,b,g,ts){
+  let q=eulerToQuat(a,b,g);
+  if(!oriQ){oriQ=q;oriRaw=q;oriTs=ts;}
+  else{
+    const dt=Math.min(0.25,Math.max(0.001,(ts-oriTs)/1000)); oriTs=ts;
+    // A quaternion and its negation are the same rotation; keep the same sign
+    // as the last sample or every delta below is garbage.
+    if(oriRaw[0]*q[0]+oriRaw[1]*q[1]+oriRaw[2]*q[2]+oriRaw[3]*q[3]<0)q=q.map(v=>-v);
+    const d=qDelta(oriRaw,q); oriRaw=q;
+    const v=[d[1],d[2],d[3]], mag=Math.hypot(v[0],v[1],v[2]);
+    const c=1-Math.exp(-dt/ORI_TREND);
+    for(let i=0;i<3;i++)devVec[i]+=(v[i]-devVec[i])*c;
+    devMag+=(mag-devMag)*c;
+    /* Telling noise from a real pan cannot be done on one sample: indoors the
+       magnetometer jitters by as much as a deliberate movement. But jitter is
+       zero-mean and a pan is not, so the average of the step VECTORS cancels
+       for noise while the average of their MAGNITUDES does not. The ratio is
+       ~0 for shake and ~1 for a sustained sweep, and that is what picks the
+       time constant: rock-steady when held, out of the way when aimed. */
+    const coh=Math.min(1,Math.hypot(devVec[0],devVec[1],devVec[2])/Math.max(devMag,1e-9));
+    const tau=ORI_TAU_STILL+(ORI_TAU_MOVING-ORI_TAU_STILL)*coh;
+    oriQ=slerp(oriQ,q,1-Math.exp(-dt/tau));
+  }
+  const e=quatToEuler(oriQ);
+  state.alpha=e[0];state.beta=e[1];state.gamma=e[2];
+  state.hasCompass=true;
+}
+
 /* =================== SUN → SKY =================== */
 function sunAltitude(lat,lon,date){
   const n=date.getTime()/86400000+2440587.5-2451545.0;
@@ -1013,15 +1105,18 @@ function sunAltitude(lat,lon,date){
   const H=(gmst*15+lon)*rad-ra;
   return Math.asin(Math.sin(lat*rad)*Math.sin(dec)+Math.cos(lat*rad)*Math.cos(dec)*Math.cos(H))/rad;
 }
+/* One flat colour per sun altitude. The value still tracks the real sun, but it
+   is painted as a single solid field rather than a top-to-horizon ramp — the
+   interpolation below moves the sky through time, never across the screen. */
 const SKY_STOPS=[
-  [ 60,"#1E74AE","#3E9BCC","#7BC3E2","#A9DDF0",0.00],
-  [ 25,"#1A639B","#3689BC","#68B0D4","#96CFE8",0.00],
-  [  8,"#1B5480","#4A7CA0","#B98A62","#E8B07A",0.00],
-  [  1,"#173F63","#4E5F82","#D6784E","#FFA96B",0.06],
-  [ -4,"#102A47","#37406A","#A8474A","#D9663F",0.24],
-  [ -8,"#0B1D35","#1E2A50","#4A3B66","#6E4A72",0.55],
-  [-14,"#070F22","#0F1730","#1D2245","#2E2F55",0.88],
-  [-20,"#03070F","#060B18","#0B1224","#121A30",1.00]];
+  [ 60,"#2C82BA",0.00],
+  [ 25,"#26719F",0.00],
+  [  8,"#2B5C80",0.00],
+  [  1,"#3B4A6B",0.06],
+  [ -4,"#343356",0.24],
+  [ -8,"#22243F",0.55],
+  [-14,"#121A2E",0.88],
+  [-20,"#06101F",1.00]];
 const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const mix=(a,b,t)=>{const A=hx(a),B=hx(b);
   return "#"+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,"0")).join("");};
@@ -1042,14 +1137,12 @@ function applySky(force){
   let i=0; while(i<SKY_STOPS.length-1&&alt<SKY_STOPS[i+1][0])i++;
   let A=SKY_STOPS[i],B=SKY_STOPS[Math.min(i+1,SKY_STOPS.length-1)],t=0;
   if(A!==B)t=Math.max(0,Math.min(1,(A[0]-alt)/(A[0]-B[0])));
+  const sky=mix(A[1],B[1],t);
   const s=document.documentElement.style;
-  s.setProperty("--sky-top",mix(A[1],B[1],t));
-  s.setProperty("--sky-mid",mix(A[2],B[2],t));
-  s.setProperty("--sky-horizon",mix(A[3],B[3],t));
-  s.setProperty("--sky-glow",mix(A[4],B[4],t));
-  s.setProperty("--star",(A[5]+(B[5]-A[5])*t).toFixed(2));
+  s.setProperty("--sky",sky);
+  s.setProperty("--star",(A[2]+(B[2]-A[2])*t).toFixed(2));
   const m=document.querySelector('meta[name=theme-color]');
-  if(m)m.setAttribute("content",mix(A[1],B[1],t));
+  if(m)m.setAttribute("content",sky);
   document.getElementById("skyLabel").textContent=
     skyPhase(alt)+" · SUN "+(alt>=0?"+":"")+alt.toFixed(0)+"°";
 }
@@ -1118,24 +1211,54 @@ async function fetchLive(){
   finally{clearTimeout(to);}
   if(!res.ok)throw new Error("HTTP "+res.status);
   const j=await res.json();
+  // Carry the drawn position across the refresh so a new fix corrects the
+  // marker instead of teleporting it (see coast()).
+  const prev=new Map(state.traffic.map(f=>[f.hex,f]));
   return (j.ac||j.aircraft||[]).filter(a=>a.lat&&a.lon).map(a=>{
     const code=(a.t||"").toUpperCase();
     const t=TYPES[code]||{dex:0,code:code||"????",name:a.desc||"Unidentified type",mfr:"Unknown",wake:"M",
       active:500,span:30,len:30,mtow:50,range:0,cruise:400,eng:2,mount:"wing",tail:"conv",sweep:25,
       tip:"none",ff:0,pax:0,ceil:45000,engType:"Turbofan",note:"Not in the reference library yet."};
     const cs=(a.flight||"").trim();
+    const p=prev.get(a.hex);
+    const alt=typeof a.alt_baro==="number"?a.alt_baro:(a.alt_geom||0);
     return {id:a.hex,hex:a.hex,code:t.code,type:t,op:OPERATORS[cs.slice(0,3).toUpperCase()]||null,
       mil:a.dbFlags===1,call:cs||a.r||String(a.hex).toUpperCase(),reg:a.r||"—",lat:a.lat,lon:a.lon,
-      alt:typeof a.alt_baro==="number"?a.alt_baro:(a.alt_geom||0),gs:Math.round(a.gs||0),
+      alt,gs:Math.round(a.gs||0),
+      rlat:p?p.rlat:undefined,rlon:p?p.rlon:undefined,ralt:p?p.ralt:undefined,
       track:Math.round(a.track||0),blocked:false,origin:null,dest:null,live:true,seen:Date.now()};});
 }
-let loop=null, NEAR=[], nearStamp=0;
+let loop=null, NEAR=[];
+
+/* Live fixes arrive every few seconds, so without this every aircraft would sit
+   still and then jump the instant a fetch returned. Each track is dead-reckoned
+   forward from its own last fix, and the drawn position eases onto that — so
+   motion is continuous and a late or corrected fix slides in rather than
+   teleporting. Also smooths the coarse steps of the simulated sky. */
+let coastTs=0;
+function coast(now){
+  const dt=coastTs?Math.min(0.5,(now-coastTs)/1000):0; coastTs=now;
+  const k=dt?1-Math.exp(-dt/0.45):0;
+  const wall=Date.now();
+  for(const f of state.traffic){
+    let tlat=f.lat,tlon=f.lon;
+    if(f.live){
+      const age=Math.min(30,Math.max(0,(wall-f.seen)/1000));
+      const km=f.gs*NM/3600*age, cl=Math.cos(toRad(f.lat));
+      tlat=f.lat+(km/111)*Math.cos(toRad(f.track));
+      tlon=f.lon+(km/(111*(Math.abs(cl)<1e-6?1e-6:cl)))*Math.sin(toRad(f.track));
+    }
+    if(f.rlat===undefined||f.rlon===undefined||!k){f.rlat=tlat;f.rlon=tlon;f.ralt=f.alt;continue;}
+    f.rlat+=(tlat-f.rlat)*k; f.rlon+=(tlon-f.rlon)*k;
+    f.ralt=(f.ralt===undefined?f.alt:f.ralt+(f.alt-f.ralt)*k);
+  }
+}
 function nearby(){
-  const now=performance.now();
-  if(now-nearStamp<180)return NEAR;
-  nearStamp=now;
-  NEAR=state.traffic.map(f=>{const g=distKm(state.lat,state.lon,f.lat,f.lon);
-    f.distNm=g/NM; f.brg=bearing(state.lat,state.lon,f.lat,f.lon); f.elev=elevation(g,f.alt);
+  NEAR=state.traffic.map(f=>{
+    const la=f.rlat!==undefined?f.rlat:f.lat, lo=f.rlon!==undefined?f.rlon:f.lon;
+    const al=f.ralt!==undefined?f.ralt:f.alt;
+    const g=distKm(state.lat,state.lon,la,lo);
+    f.distNm=g/NM; f.brg=bearing(state.lat,state.lon,la,lo); f.elev=elevation(g,al);
     f.overHorizon=f.elev<0; return f;})
     .filter(f=>f.distNm<=state.rangeNm).sort((a,b)=>a.distNm-b.distNm);
   return NEAR;
@@ -1145,8 +1268,7 @@ async function tick(){
     try{state.traffic=await fetchLive();setPill(true,"LIVE");}
     catch(e){state.live=false;setPill(false,"SIM");toast("Live feed unreachable — simulated sky");startLoop();return;}
   } else simTick();
-  nearStamp=0;
-  if(!state.huntOn){renderScope();renderList();}
+  if(!state.huntOn){coast(performance.now());renderScope();renderList();}
   applySky(false);
 }
 function startLoop(){clearInterval(loop);tick();loop=setInterval(tick,state.live?6000:1200);}
@@ -1235,11 +1357,22 @@ function stopCamera(){
   v.style.display="none";state.camOn=false;
   document.getElementById("fakesky").style.display="";
 }
+/* Four corner brackets around an empty middle. Nothing is ever drawn on the
+   aircraft itself, so once you can actually see the plane the marker frames it
+   instead of hiding it. */
+function bracketPath(S){
+  const L=Math.max(6,Math.round(S*0.26));
+  return `M0 ${L}V0h${L} M${S-L} 0h${L}v${L} M${S} ${S-L}v${L}h-${L} M${L} ${S}H0v-${L}`;
+}
 function huntFrame(ts){
   if(!state.huntOn){huntRaf=null;return;}
   const dt=state.lastFrame?Math.min(100,ts-state.lastFrame):16; state.lastFrame=ts;
   const {f,r,u}=cameraBasis(), {h:fh,v:fv,W,H}=fovs();
   const th=Math.tan(fh/2), tv=Math.tan(fv/2);
+  // One camera solve per frame, not one per aircraft.
+  const hdg=(toDeg(Math.atan2(f[0],f[1]))+360)%360;
+  const elev=toDeg(Math.asin(Math.max(-1,Math.min(1,f[2]))));
+  coast(ts);
   const list=nearby();
   const host=document.getElementById("mkHost");
   const alive=new Set();
@@ -1258,28 +1391,47 @@ function huntFrame(ts){
     let n=mkNodes.get(a.id);
     if(!n){
       n=document.createElement("div"); n.className="mk";
-      n.innerHTML=`<div class="glyph"></div><div class="box"><b></b> <span></span></div>`;
+      n.innerHTML=`<svg class="brk" viewBox="0 0 40 40"><path/></svg>`+
+                  `<div class="box"><b></b><span></span><i>&#8593;</i></div>`;
       host.appendChild(n); mkNodes.set(a.id,n);
-      n._code=""; n._sz=0;
+      n._sz=0; n._col=""; n._txt=""; n._rot=null;
     }
     const got=SAVE.types[a.code];
     const col=got?"#8AA6BC":cssTier(a.type);
-    const sz=Math.round(Math.max(20,Math.min(56,58-a.distNm*0.7)));
-    if(n._code!==a.code+col||n._sz!==sz){
-      const g=n.firstChild;
-      g.style.width=sz+"px"; g.style.height=sz+"px";
-      g.innerHTML=silhouette(a.type,{fill:col,trueScale:false});
-      n._code=a.code+col; n._sz=sz;
+    // The frame opens up as the aircraft gets closer, so it brackets roughly
+    // what you are looking at rather than a fixed-size box.
+    const sz=Math.round(Math.max(30,Math.min(76,76-a.distNm*0.9)));
+    if(n._sz!==sz){
+      const svg=n.firstChild;
+      svg.setAttribute("width",sz); svg.setAttribute("height",sz);
+      svg.setAttribute("viewBox",`0 0 ${sz} ${sz}`);
+      svg.firstChild.setAttribute("d",bracketPath(sz));
+      n.lastChild.style.top=(sz/2+8)+"px"; // label hangs clear below the frame
+      n._sz=sz;
     }
-    n.firstChild.style.transform=`rotate(${(a.track-lookAngles().hdg).toFixed(0)}deg)`;
-    const bx=n.lastChild;
-    bx.firstChild.textContent=a.code;
-    bx.lastChild.textContent=`${a.distNm.toFixed(0)}NM ${got?"×"+got.count:"NEW"}`;
-    n.style.transform=`translate3d(${(px-40).toFixed(1)}px,${(py-sz/2).toFixed(1)}px,0)`;
-    n.style.width="80px";
-    n.classList.toggle("lockon",best===a&&bestAng<LOCK_DEG);
+    if(n._col!==col){n.firstChild.style.stroke=col;n._col=col;}
+    const stat=`${a.distNm.toFixed(0)}NM ${got?"×"+got.count:"NEW"}`;
+    if(n._txt!==a.code+stat){
+      const bx=n.lastChild;
+      bx.children[0].textContent=a.code;
+      bx.children[1].textContent=stat;
+      n._txt=a.code+stat;
+    }
+    // Heading arrow lives in the label, where it cannot cover anything.
+    const rot=Math.round(a.track-hdg);
+    if(n._rot!==rot){n.lastChild.children[2].style.transform=`rotate(${rot}deg)`;n._rot=rot;}
+    // Light screen-space easing mops up whatever jitter survives the
+    // orientation filter, without adding perceptible lag.
+    if(n._px===undefined){n._px=px;n._py=py;}
+    else{const s=1-Math.exp(-dt/60); n._px+=(px-n._px)*s; n._py+=(py-n._py)*s;}
+    n.style.transform=`translate3d(${n._px.toFixed(1)}px,${n._py.toFixed(1)}px,0)`;
   }
   for(const [id,n] of mkNodes){if(!alive.has(id)){n.remove();mkNodes.delete(id);}}
+  // Decided after the loop: `best` is only final once every aircraft has been
+  // measured, so toggling inside it left a stale highlight on whoever happened
+  // to be nearest at the time.
+  const lockedId=best&&bestAng<LOCK_DEG?best.id:null;
+  for(const [id,n] of mkNodes)n.classList.toggle("lockon",id===lockedId);
 
   // lock-on: hold the target inside the reticle for two seconds
   const inRet=best&&bestAng<LOCK_DEG?best:null;
@@ -1300,15 +1452,17 @@ function huntFrame(ts){
     state.lockId=null;
     state.lockMs=Math.max(0,state.lockMs-dt*1.8);
     ring.setAttribute("stroke-dashoffset",(289*(1-state.lockMs/LOCK_MS)).toFixed(1));
-    msg.className="hmsg";
-    msg.textContent=state.hasCompass?"AIM THE CROSSHAIR AT A PLANE AND HOLD IT":"DRAG TO LOOK AROUND · CENTRE A PLANE AND HOLD";
+    msg.className=state.hasCompass&&!state.trueNorth?"hmsg warn":"hmsg";
+    msg.textContent=!state.hasCompass?"DRAG TO LOOK AROUND · CENTRE A PLANE AND HOLD"
+      :state.trueNorth?"AIM THE CROSSHAIR AT A PLANE AND HOLD IT"
+      :"NO TRUE-NORTH REFERENCE — BEARINGS MAY BE OFF";
   }
-  drawCompass();
-  drawGuide(list);
+  drawCompass(hdg,elev);
+  drawGuide(list,hdg,elev);
   huntRaf=requestAnimationFrame(huntFrame);
 }
-function drawCompass(){
-  const {hdg,elev}=lookAngles();
+function drawCompass(hdg,elev){
+  if(hdg===undefined){const L=lookAngles();hdg=L.hdg;elev=L.elev;}
   const {h:fh}=fovs(), halfDeg=toDeg(fh/2);
   let s="";
   const step=5, span=Math.ceil(halfDeg/step)*step;
@@ -1316,7 +1470,7 @@ function drawCompass(){
     const b=(hdg+d+3600)%360, x=300+(d/halfDeg)*300;
     if(x<0||x>600)continue;
     const maj=Math.abs(b%30)<2.5||Math.abs(b%30-30)<2.5;
-    s+=`<line x1="${x.toFixed(1)}" y1="${maj?5:11}" x2="${x.toFixed(1)}" y2="19" stroke="rgba(180,220,255,${maj?.75:.35})" stroke-width="1"/>`;
+    s+=`<line x1="${x.toFixed(1)}" y1="${maj?5:11}" x2="${x.toFixed(1)}" y2="19" stroke="${maj?"#9BBBD4":"#66889F"}" stroke-width="1"/>`;
     if(maj)s+=`<text x="${x.toFixed(1)}" y="27" text-anchor="middle" font-family="Azeret Mono,monospace" font-size="9" fill="#9BBBD4">${String(Math.round(b/30)*30%360).padStart(3,"0")}</text>`;
   }
   s+=`<path d="M300 0 l5 7 h-10 z" fill="#6FD8FF"/>`;
@@ -1325,13 +1479,13 @@ function drawCompass(){
     `<div class="hmsg" style="padding:6px 12px">HDG ${String(Math.round(hdg)).padStart(3,"0")}° · LOOK ${elev>=0?"+":""}${Math.round(elev)}° · ${NEAR.length} IN RANGE</div>`;
 }
 let guideEl=null;
-function drawGuide(list){
+function drawGuide(list,hdg,elev){
   const layer=document.getElementById("huntLayer");
   if(!guideEl){guideEl=document.createElement("div");guideEl.className="guide";layer.appendChild(guideEl);}
   let t=state.trackId?list.find(a=>a.id===state.trackId&&!a.overHorizon):null;
   if(!t)t=list.find(a=>!SAVE.types[a.code]&&!a.overHorizon)||list.find(a=>!a.overHorizon);
   if(!t){guideEl.style.display="none";return;}
-  const {hdg,elev}=lookAngles();
+  if(hdg===undefined){const L=lookAngles();hdg=L.hdg;elev=L.elev;}
   let dx=((t.brg-hdg+540)%360)-180, dy=t.elev-elev;
   const {h:fh,v:fv}=fovs();
   if(Math.abs(dx)<toDeg(fh/2)&&Math.abs(dy)<toDeg(fv/2)){guideEl.style.display="none";return;}
@@ -1372,19 +1526,27 @@ async function enableCompass(){
       const r=await DeviceOrientationEvent.requestPermission();
       if(r!=="granted")return false;
     }
-    const handler=e=>{
+    const read=(e,absolute)=>{
       if(e.alpha===null&&e.beta===null)return;
+      let a;
       // webkitCompassHeading is true north; alpha alone is not on iOS
-      if(typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading))
-        state.alpha=(360-e.webkitCompassHeading)%360;
-      else if(e.alpha!==null)state.alpha=e.alpha;
-      if(e.beta!==null)state.beta=e.beta;
-      if(e.gamma!==null)state.gamma=e.gamma;
-      state.hasCompass=true;
+      if(typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading)){
+        a=(360-e.webkitCompassHeading)%360; state.trueNorth=true;
+      } else if(e.alpha!==null){
+        a=e.alpha; if(absolute||e.absolute===true)state.trueNorth=true;
+      } else return;
+      feedOrientation(a, e.beta!==null?e.beta:state.beta,
+                         e.gamma!==null?e.gamma:state.gamma, performance.now());
     };
+    /* Exactly one source may drive the filter. Both of these events fire on
+       Android, but their alpha is measured from different zeros — true north
+       vs. wherever the page happened to start — so binding the same handler to
+       both made the heading flip between two reference frames every sample.
+       That was the biggest single cause of the markers tearing around. */
+    let absoluteSeen=false;
     if("ondeviceorientationabsolute" in window)
-      window.addEventListener("deviceorientationabsolute",handler,true);
-    window.addEventListener("deviceorientation",handler,true);
+      window.addEventListener("deviceorientationabsolute",e=>{absoluteSeen=true;read(e,true);},true);
+    window.addEventListener("deviceorientation",e=>{if(!absoluteSeen)read(e,false);},true);
     readScreenAngle();
     return true;
   }catch(err){return false;}
