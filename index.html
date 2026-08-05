@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#04101C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plane Hunter">
+<title>PLANE HUNTER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Azeret+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   PLANE HUNTER
+   The sky behind the app is the real sky: its colour comes from
+   the sun's actual altitude at your position, right now.
+   The interface stays in night tones so it still reads at noon.
+   ========================================================== */
+:root{
+  --sky-top:#06101F; --sky-mid:#0A1A30; --sky-horizon:#122744; --sky-glow:#1B3557;
+  --star:0.9;
+  --panel:rgba(8,19,32,.68);
+  --panel-2:rgba(11,26,42,.84);
+  --panel-3:rgba(16,36,56,.94);
+  --line:rgba(160,208,240,.16);
+  --line-2:rgba(160,208,240,.3);
+  --ink:#EAF5FF; --ink-2:#9BBBD4; --ink-3:#66889F;
+  --cyan:#6FD8FF; --cyanD:#238FC4;
+  --amber:#FFC857; --magenta:#FF6BC1; --red:#FF5D73;
+  --r-common:#8AA6BC; --r-uncommon:#6FD8FF; --r-rare:#FFC857;
+  --r-exotic:#FF6BC1; --r-legendary:#FF5D73; --r-ghost:#DCEBFA;
+  --disp:'Barlow Condensed','Arial Narrow',sans-serif;
+  --body:'Barlow',system-ui,-apple-system,sans-serif;
+  --mono:'Azeret Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior:none}
+body{font-family:var(--body);color:var(--ink);background:var(--sky-top);
+  -webkit-font-smoothing:antialiased;touch-action:manipulation}
+#skybg{position:fixed;inset:0;z-index:-3;background:var(--sky-top);transition:background 1.5s linear}
+#skyhz{position:fixed;left:0;right:0;bottom:0;height:56%;z-index:-2;
+  background:linear-gradient(180deg,transparent,var(--sky-mid) 44%,var(--sky-horizon) 79%,var(--sky-glow));
+  transition:background 1.5s linear}
+#stars{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--star);transition:opacity 2s linear}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.app{max-width:540px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+  padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+
+header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:11px;
+  padding:calc(9px + env(safe-area-inset-top)) 14px 9px;background:var(--panel-2);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.logo{width:34px;height:34px;flex:none}
+.wm .a{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.2em;display:block;line-height:.95}
+.wm .b{font-family:var(--mono);font-size:7.5px;letter-spacing:.28em;color:var(--ink-3);display:block;margin-top:3px}
+.spacer{flex:1}
+.pill{font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;color:var(--ink-2);border:1px solid var(--line);
+  border-radius:20px;padding:5px 9px;display:flex;align-items:center;gap:6px;background:rgba(6,16,28,.5)}
+.pill .d{width:5px;height:5px;border-radius:50%;background:var(--ink-3)}
+.pill.on{color:var(--cyan);border-color:rgba(111,216,255,.42)}
+.pill.on .d{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:bl 2s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.ib{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);background:rgba(6,16,28,.5);color:var(--ink-2);font-size:15px}
+.ib:active{background:var(--panel-3)}
+.eyebrow{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--ink-3);text-transform:uppercase}
+.view{display:none;flex:1;flex-direction:column}
+.view.on{display:flex}
+.pad{padding:0 14px}
+
+.scopewrap{padding:14px 14px 6px}
+.scopeglass{position:relative;border-radius:50%;padding:8px;background:var(--panel);
+  border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 16px 40px -22px #000}
+.scope{position:relative;width:100%;aspect-ratio:1}
+.scope svg{width:100%;height:100%;display:block;overflow:visible}
+.sweep{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,rgba(111,216,255,.18) 0deg,rgba(111,216,255,0) 50deg,transparent 360deg);
+  animation:sw 4.6s linear infinite;
+  -webkit-mask:radial-gradient(circle,#000 0 49.4%,transparent 50%);
+  mask:radial-gradient(circle,#000 0 49.4%,transparent 50%)}
+@keyframes sw{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sweep{animation:none;opacity:.4}}
+.rt{font-family:var(--mono);font-size:8px;fill:var(--ink-3)}
+.cd{font-family:var(--disp);font-size:13px;font-weight:600;fill:var(--ink-2);letter-spacing:.12em}
+.meta{display:flex;justify-content:space-between;gap:8px;padding:9px 16px 12px;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;color:var(--ink-3)}
+.meta b{color:var(--cyan);font-weight:500}
+
+.list{padding:0 14px 22px;display:flex;flex-direction:column;gap:8px}
+.ct{display:flex;align-items:stretch;overflow:hidden;border-radius:14px;background:var(--panel);
+  border:1px solid var(--line)}
+.ct .edge{width:4px;flex:none;background:var(--r-common)}
+.ct .core{flex:1;padding:9px 12px;min-width:0}
+.ct .l1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ct .call{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.07em;line-height:1}
+.ct .typ{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;
+  border:1px solid var(--line-2);padding:2px 6px;border-radius:5px}
+.ct .tag{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.13em;padding:3px 6px;
+  border-radius:5px;color:#04101B}
+.ct .l2{font-family:var(--mono);font-size:9.5px;color:var(--ink-2);margin-top:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct .l3{font-size:12px;color:var(--ink-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct .act{flex:none;width:70px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;
+  font-size:12.5px;letter-spacing:.11em;color:var(--cyan);border-left:1px solid var(--line);
+  background:rgba(111,216,255,.08);line-height:1.15;text-align:center}
+.ct .act:active{background:rgba(111,216,255,.3);color:#04101B}
+.ct.got .act{color:var(--ink-3);background:none}
+.empty{padding:30px 20px;text-align:center;margin:0 14px;border-radius:16px;background:var(--panel);
+  border:1px solid var(--line)}
+.empty h3{font-family:var(--disp);font-size:20px;letter-spacing:.12em;margin:0 0 7px}
+.empty p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--disp);
+  font-weight:600;font-size:15px;letter-spacing:.13em;padding:13px 18px;border-radius:12px;
+  border:1px solid var(--line-2);color:var(--ink);background:var(--panel-3)}
+.btn:active{background:rgba(111,216,255,.2)}
+.btn.solid{background:var(--cyan);color:#04121C;border-color:transparent}
+.btn.solid:active{filter:brightness(.88)}
+.btn.danger{border-color:rgba(255,93,115,.4);color:var(--red)}
+.btn.wide{width:100%}
+.btn.sm{font-size:13px;padding:9px 13px;border-radius:9px}
+
+/* ---- HUNT ---- */
+.hunt{position:fixed;inset:0;z-index:10;overflow:hidden;background:#04101C;display:none;
+  touch-action:none;user-select:none;-webkit-user-select:none}
+.hunt.on{display:block}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#fakesky{position:absolute;inset:0;
+  background:linear-gradient(180deg,var(--sky-top),var(--sky-mid) 46%,var(--sky-horizon) 77%,var(--sky-glow))}
+.hudtop{position:absolute;top:0;left:0;right:0;z-index:6;padding:calc(env(safe-area-inset-top) + 8px) 12px 0;
+  display:flex;justify-content:center}
+.compass{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:0;right:0;height:28px;z-index:5;
+  -webkit-mask:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent);
+  mask:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent)}
+.compass svg{width:100%;height:100%}
+#reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
+#mkHost{position:absolute;inset:0;z-index:3;pointer-events:none}
+.mk{position:absolute;left:0;top:0;will-change:transform;display:flex;flex-direction:column;
+  align-items:center;gap:3px}
+.mk .box{padding:3px 7px;border-radius:7px;background:rgba(5,15,26,.66);border:1px solid var(--line-2);
+  font-family:var(--mono);font-size:9px;white-space:nowrap;color:var(--ink-2)}
+.mk .box b{font-family:var(--disp);font-size:12.5px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+.mk.lockon .box{border-color:var(--cyan);color:var(--cyan);background:rgba(6,34,52,.85)}
+.hbottom{position:absolute;left:0;right:0;bottom:calc(80px + env(safe-area-inset-bottom));padding:0 14px;
+  z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hmsg{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink-2);text-align:center;
+  background:rgba(5,15,26,.7);border:1px solid var(--line);border-radius:20px;padding:8px 14px;max-width:96%}
+.hmsg.hot{color:var(--cyan);border-color:rgba(111,216,255,.5)}
+.guide{position:absolute;z-index:5;font-family:var(--disp);font-weight:700;font-size:13px;
+  letter-spacing:.1em;color:var(--cyan);display:flex;align-items:center;gap:6px;
+  background:rgba(5,15,26,.75);border:1px solid rgba(111,216,255,.4);border-radius:20px;padding:7px 11px;
+  top:50%;transform:translateY(-50%);white-space:nowrap}
+
+.overlay{position:fixed;inset:0;z-index:90;background:rgba(2,8,14,.88);display:none;
+  flex-direction:column;justify-content:center;padding:16px;overflow-y:auto}
+.overlay.on{display:flex}
+.stage{perspective:1500px;max-width:420px;width:100%;margin:auto}
+.c3d{position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.85,.3,1)}
+.c3d.flip{transform:rotateY(180deg)}
+.face{border-radius:18px;overflow:hidden;backface-visibility:hidden;background:var(--panel-3);
+  border:1px solid var(--line-2);box-shadow:0 26px 60px -26px #000}
+.face.back{position:absolute;inset:0;transform:rotateY(180deg);display:flex;flex-direction:column}
+.ctop{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
+.ctop .no{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-2)}
+.ctop .tier{margin-left:auto;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.16em;
+  padding:4px 8px;border-radius:6px;color:#04101B}
+.art{position:relative;aspect-ratio:1.62;display:grid;place-items:center;padding:14px;
+  background:rgba(5,15,26,.45);border-bottom:1px solid var(--line)}
+.art svg{width:100%;height:100%}
+.art .wk{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:8px;letter-spacing:.13em;
+  color:var(--ink-2);border:1px solid var(--line);border-radius:5px;padding:3px 7px}
+.art .sb{position:absolute;bottom:9px;left:12px;right:12px}
+.art .sb .t{font-family:var(--mono);font-size:7px;letter-spacing:.13em;color:var(--ink-3);margin-bottom:3px}
+.art .sb .bar{height:3px;background:rgba(160,208,240,.16);border-radius:3px;overflow:hidden}
+.art .sb .bar i{display:block;height:100%;background:var(--cyan)}
+.cname{padding:13px 13px 5px}
+.cname h2{font-family:var(--disp);font-weight:700;font-size:31px;line-height:.95;margin:0}
+.cname .mf{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--ink-2);margin-top:5px;text-transform:uppercase}
+.note{padding:10px 13px 12px;font-size:13px;line-height:1.5;color:var(--ink-2);
+  border-top:1px solid var(--line);margin-top:11px}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}
+.sg div{padding:9px 11px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.sg div:nth-child(3n){border-right:none}
+.sg .k{font-family:var(--mono);font-size:7px;letter-spacing:.13em;color:var(--ink-3)}
+.sg .v{font-family:var(--disp);font-weight:600;font-size:19px;line-height:1.15;margin-top:2px}
+.sg .v small{font-size:9px;font-weight:500;color:var(--ink-3)}
+.cfoot{padding:10px 13px;font-family:var(--mono);font-size:8.5px;color:var(--ink-3);
+  display:flex;justify-content:space-between;gap:8px}
+.back .rec{padding:13px;flex:1;overflow-y:auto}
+.back h3{font-family:var(--disp);font-size:23px;letter-spacing:.08em;margin:0}
+.route{display:flex;align-items:center;gap:9px;margin:14px 0}
+.route .ap{text-align:center;flex:none}
+.route .ap .cc{font-family:var(--disp);font-size:27px;font-weight:700;line-height:1}
+.route .ap .ci{font-family:var(--mono);font-size:8px;color:var(--ink-3);margin-top:4px;
+  max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.route .arc{flex:1;height:24px}
+.route .arc svg{width:100%;height:100%}
+.rl{border-top:1px solid var(--line)}
+.rl div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px}
+.rl .k{color:var(--ink-3);letter-spacing:.1em;font-size:8.5px;align-self:center}
+.tapf{text-align:center;font-family:var(--mono);font-size:8.5px;letter-spacing:.17em;color:var(--ink-3);padding:11px 0 0}
+
+.tabs{display:flex;padding:0 10px;gap:2px;position:sticky;top:56px;z-index:40;overflow-x:auto;
+  scrollbar-width:none;background:var(--panel-2);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{font-family:var(--disp);font-weight:600;font-size:13.5px;letter-spacing:.15em;padding:12px 11px;
+  color:var(--ink-3);border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.prog{padding:14px}
+.prog .r{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.prog .big{font-family:var(--disp);font-weight:700;font-size:27px}
+.prog .big small{color:var(--ink-3);font-size:14px;font-weight:500}
+.prog .bar{height:5px;background:rgba(160,208,240,.14);border-radius:4px;overflow:hidden;margin-top:9px}
+.prog .bar i{display:block;height:100%;background:var(--cyan);transition:width .5s}
+.filt{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none}
+.filt::-webkit-scrollbar{display:none}
+.filt button{font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:6px 10px;border-radius:14px;
+  border:1px solid var(--line);color:var(--ink-3);white-space:nowrap;background:var(--panel)}
+.filt button.on{color:var(--cyan);border-color:rgba(111,216,255,.45);background:rgba(111,216,255,.12)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:8px;padding:4px 14px 26px}
+.cell{position:relative;border-radius:13px;padding:9px 7px 7px;min-height:112px;display:flex;
+  flex-direction:column;text-align:left;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
+.cell.blank{opacity:.34;border-style:dashed;justify-content:center;align-items:center}
+.cell.blank .q{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--ink-3);letter-spacing:.12em}
+.cell .sil{flex:1;display:grid;place-items:center}
+.cell .sil svg{width:100%;height:100%;max-height:48px}
+.cell .code{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.09em}
+.cell .nm{font-size:9.5px;color:var(--ink-3);line-height:1.25;margin-top:2px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.cell::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--r-common)}
+.cell.blank::before{display:none}
+.cell .n{position:absolute;top:6px;right:7px;font-family:var(--mono);font-size:8.5px;font-weight:700;
+  color:#04101B;background:var(--cyan);border-radius:9px;padding:1px 6px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;padding:4px 14px 26px}
+.fc{position:relative;border-radius:13px;padding:11px 5px 8px;display:flex;flex-direction:column;
+  align-items:center;gap:5px;text-align:center;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
+.fc.locked{opacity:.28;border-style:dashed}
+.fc .fl{font-size:31px;line-height:1}
+.fc.locked .fl{filter:grayscale(1) brightness(.6)}
+.fc .cc{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em}
+.fc .nm{font-size:8.5px;color:var(--ink-3);line-height:1.2;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;max-width:100%}
+.fc .n{position:absolute;top:5px;right:6px;font-family:var(--mono);font-size:8px;font-weight:700;
+  color:#04101B;background:var(--cyan);border-radius:8px;padding:1px 5px}
+.rows{padding:4px 14px 26px;display:flex;flex-direction:column;gap:6px}
+.ri{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;width:100%;text-align:left;
+  background:var(--panel);border:1px solid var(--line)}
+.ri.locked{opacity:.3;border-style:dashed}
+.ri .fl{font-size:19px;flex:none;line-height:1}
+.ri.locked .fl{filter:grayscale(1) brightness(.6)}
+.ri .cc{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.09em;color:var(--cyan);flex:none;width:44px}
+.ri.locked .cc{color:var(--ink-3)}
+.ri .nm{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ri .sub{font-family:var(--mono);font-size:9px;color:var(--ink-3);flex:none}
+.ri .n{font-family:var(--mono);font-size:9px;font-weight:700;color:#04101B;background:var(--cyan);
+  border-radius:9px;padding:2px 7px;flex:none}
+.li{display:flex;overflow:hidden;border-radius:12px;margin-bottom:7px;background:var(--panel);border:1px solid var(--line)}
+.li .edge{width:4px;flex:none}
+.li .c{padding:9px 12px;flex:1;min-width:0}
+.li .t{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.06em}
+.li .m{font-family:var(--mono);font-size:9px;color:var(--ink-3);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+nav{position:fixed;bottom:0;left:0;right:0;z-index:80;display:flex;max-width:540px;margin:0 auto;
+  background:var(--panel-2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;padding:10px 3px 11px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-family:var(--disp);font-weight:600;font-size:10.5px;letter-spacing:.15em;color:var(--ink-3)}
+nav button svg{width:19px;height:19px;opacity:.6}
+nav button.on{color:var(--cyan)}
+nav button.on svg{opacity:1}
+
+.sheet{position:fixed;inset:0;z-index:95;background:rgba(2,8,14,.84);display:none;align-items:flex-end}
+.sheet.on{display:flex}
+.sin{width:100%;max-width:540px;margin:0 auto;border-radius:20px 20px 0 0;
+  padding:20px 16px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+  animation:up .28s cubic-bezier(.2,.9,.3,1);background:var(--panel-3);border-top:1px solid var(--line-2)}
+@keyframes up{from{transform:translateY(30px)}to{transform:none}}
+.sin h3{font-family:var(--disp);font-size:23px;letter-spacing:.1em;margin:0 0 4px}
+.sin p{font-size:12.5px;color:var(--ink-2);line-height:1.55;margin:0 0 15px}
+.f{margin-bottom:13px}
+.f label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--ink-3);margin-bottom:6px}
+.f input:not([type=range]){width:100%;background:rgba(4,12,22,.7);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:13px;padding:11px;border-radius:10px}
+.f input:focus{outline:none;border-color:var(--cyan)}
+.f input[type=range]{width:100%;accent-color:#6FD8FF}
+.two{display:flex;gap:9px}.two>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px}
+.chips button{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-radius:14px;
+  padding:7px 10px;color:var(--ink-2);background:var(--panel)}
+.chips button:active{border-color:var(--cyan);color:var(--cyan)}
+.toast{position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:99;max-width:88vw;
+  font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:.08em;padding:11px 17px;
+  border-radius:22px;background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-7px)}
+</style>
+</head>
+<body>
+<div id="skybg"></div><div id="skyhz"></div><canvas id="stars"></canvas>
+
+<div class="app">
+  <header>
+    <svg class="logo" viewBox="0 0 100 100" aria-label="Plane Hunter">
+      <defs><clipPath id="iris"><circle cx="50" cy="50" r="21"/></clipPath></defs>
+      <g stroke="#6FD8FF" stroke-width="1.6" stroke-linecap="round" opacity=".5">
+        <path d="M50 3v7M50 90v7M3 50h7M90 50h7"/>
+        <path d="M16 16l5 5M84 84l-5-5M84 16l-5 5M16 84l5-5" opacity=".45"/>
+        <path d="M69 8l2.5 5.4" opacity=".3"/><path d="M27 93l-2-5.1" opacity=".3"/></g>
+      <path d="M6 50C22 22 78 22 94 50C78 78 22 78 6 50Z" fill="none" stroke="#6FD8FF" stroke-width="3.2" stroke-linejoin="round"/>
+      <path d="M6 50C22 26 78 26 94 50" fill="none" stroke="#BFEDFF" stroke-width="1.4" opacity=".6"/>
+      <g clip-path="url(#iris)">
+        <circle cx="50" cy="50" r="21" fill="#6FD8FF" opacity=".14"/>
+        <circle cx="50" cy="50" r="14" fill="none" stroke="#6FD8FF" stroke-width=".8" opacity=".4"/>
+        <circle cx="50" cy="50" r="7" fill="none" stroke="#6FD8FF" stroke-width=".8" opacity=".3"/>
+        <line x1="29" y1="50" x2="71" y2="50" stroke="#6FD8FF" stroke-width=".6" opacity=".35"/>
+        <rect x="29" y="34" width="42" height="1.4" fill="#BFEDFF" opacity=".8">
+          <animate attributeName="y" values="30;68;30" dur="5.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".8;.15;.8" dur="5.5s" repeatCount="indefinite"/></rect></g>
+      <g><animateTransform attributeName="transform" type="rotate" values="-7 50 50;7 50 50;-7 50 50" dur="11s" repeatCount="indefinite"/>
+        <path d="M50 36 L57.5 60 L50 55.4 L42.5 60 Z" fill="#EAF5FF"/></g>
+      <circle cx="50" cy="50" r="21" fill="none" stroke="#BFEDFF" stroke-width="1.2" opacity=".5"/>
+    </svg>
+    <div class="wm"><span class="a">PLANE HUNTER</span><span class="b" id="skyLabel">SKY CONTACT LOG</span></div>
+    <div class="spacer"></div>
+    <div class="pill" id="pill"><span class="d"></span><span id="pilltxt">SIM</span></div>
+    <button class="ib" id="btnSet" aria-label="Settings">⚙</button>
+  </header>
+
+  <section class="view on" id="v-scope">
+    <div class="scopewrap"><div class="scopeglass"><div class="scope">
+      <div class="sweep"></div><svg id="scopeSvg" viewBox="0 0 400 400" aria-label="Radar scope"></svg>
+    </div></div></div>
+    <div class="meta"><span id="mPos">—</span><span><b id="mCount">0</b> IN RANGE · <span id="mRange">40</span> NM</span></div>
+    <div class="list" id="listHost"></div>
+  </section>
+
+  <section class="view" id="v-dex">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="types">AIRCRAFT</button>
+      <button class="tab" data-tab="operators">AIRLINES</button>
+      <button class="tab" data-tab="airports">AIRPORTS</button>
+      <button class="tab" data-tab="countries">FLAGS</button>
+    </div>
+    <div class="prog"><div class="r"><span class="big" id="dBig">0<small>/0</small></span>
+      <span class="eyebrow" id="dLbl">—</span></div>
+      <div class="bar"><i id="dBar" style="width:0%"></i></div></div>
+    <div class="filt" id="filt"></div>
+    <div id="dexHost"></div>
+  </section>
+
+  <section class="view" id="v-log">
+    <div class="prog"><div class="r"><span class="big" id="lBig">0<small> CATCHES</small></span>
+      <span class="eyebrow">FIELD LOG</span></div></div>
+    <div class="pad" id="logHost" style="padding-bottom:26px"></div>
+  </section>
+
+  <nav>
+    <button class="on" data-view="scope"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>SCOPE</button>
+    <button data-view="hunt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.8l1.2-2h6l1.2 2h1.8A2.5 2.5 0 0121 8.5v8A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>HUNT</button>
+    <button data-view="dex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="8" height="7" rx="1.5"/><rect x="13" y="13" width="8" height="7" rx="1.5"/></svg>DEX</button>
+    <button data-view="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h11l3 3v15H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>LOG</button>
+  </nav>
+</div>
+
+<div class="hunt" id="huntLayer">
+  <div id="fakesky"></div>
+  <video id="cam" playsinline muted autoplay></video>
+  <div id="mkHost"></div>
+  <svg id="reticle" width="150" height="150" viewBox="0 0 150 150" fill="none">
+    <circle cx="75" cy="75" r="40" stroke="rgba(160,208,240,.28)" stroke-width="1.4"/>
+    <circle id="lockRing" cx="75" cy="75" r="46" stroke="#6FD8FF" stroke-width="3.6" stroke-linecap="round"
+      stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 75 75)"/>
+    <g stroke="#6FD8FF" stroke-width="1.6" id="retCross" opacity=".7">
+      <path d="M75 22v16M75 112v16M22 75h16M112 75h16"/></g>
+    <circle cx="75" cy="75" r="2" fill="#6FD8FF"/>
+  </svg>
+  <div class="compass"><svg id="compSvg" viewBox="0 0 600 28" preserveAspectRatio="none"></svg></div>
+  <div class="hudtop" id="hudTop"></div>
+  <div class="hbottom"><div class="hmsg" id="hMsg">STARTING…</div></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet"><div class="sin" id="sheetIn"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+/* ===================================================================
+   AIRCRAFT DATABASE
+   [0 code, 1 name, 2 maker, 3 wake, 4 active, 5 span_m, 6 len_m,
+    7 mtow_t, 8 range_km, 9 cruise_kt, 10 engines, 11 mount, 12 tail,
+    13 sweep, 14 wingtip, 15 firstFlight, 16 seats, 17 ceiling_ft,
+    18 engineType, 19 note]
+   "active" = roughly how many are still flying. 0 means none are,
+   which is what makes a type uncatchable.
+   =================================================================== */
+const RAW=[
+/* ---- Boeing narrowbody ---- */
+["B738","737-800","Boeing","M",4600,35.8,39.5,79,5765,453,2,"wing","conv",25,"winglet",1997,189,41000,"Turbofan","The most common airliner in the sky. If you catch one plane today, it's this."],
+["B739","737-900ER","Boeing","M",1050,35.8,42.1,85,5900,453,2,"wing","conv",25,"winglet",2000,215,41000,"Turbofan","Stretched to the limit of the old 737 airframe — exit doors had to be added mid-cabin."],
+["B737","737-700","Boeing","M",950,35.8,33.6,70,6370,453,2,"wing","conv",25,"winglet",1997,149,41000,"Turbofan","Southwest's workhorse for two decades. Short body, long legs."],
+["B736","737-600","Boeing","M",40,34.3,31.2,66,5650,453,2,"wing","conv",25,"winglet",1998,130,41000,"Turbofan","The runt of the family. Only 69 were ever built — a genuinely rare catch."],
+["B38M","737 MAX 8","Boeing","M",1500,35.9,39.5,82,6570,453,2,"wing","conv",25,"split",2016,189,41000,"Turbofan","Split-tip winglets are the tell — look for the little downward fin."],
+["B39M","737 MAX 9","Boeing","M",250,35.9,42.2,88,6570,453,2,"wing","conv",25,"split",2017,220,41000,"Turbofan","Same wing as the MAX 8, three metres more fuselage."],
+["B3XM","737 MAX 10","Boeing","M",30,35.9,43.8,90,6110,453,2,"wing","conv",25,"split",2021,230,41000,"Turbofan","Longest 737 ever. Needs a tilting landing gear just to rotate without scraping."],
+["B735","737-500","Boeing","M",120,28.9,31,60,4440,430,2,"wing","conv",25,"none",1989,132,37000,"Turbofan","Classic-generation 737 with the flattened 'hamster pouch' engine intakes."],
+["B734","737-400","Boeing","M",180,28.9,36.4,68,3800,430,2,"wing","conv",25,"none",1988,168,37000,"Turbofan","Mostly a freighter now. Listen for the older, whinier engines."],
+["B733","737-300","Boeing","M",300,28.9,33.4,63,4400,430,2,"wing","conv",25,"none",1984,149,37000,"Turbofan","The first 737 with turbofans wide enough to need a squashed, non-round nacelle."],
+["B752","757-200","Boeing","M",700,38.1,47.3,116,7222,458,2,"wing","conv",25,"winglet",1982,239,42000,"Turbofan","Pilots adore it. Absurdly overpowered — it climbs like a fighter with passengers aboard."],
+["B753","757-300","Boeing","M",50,38.1,54.4,124,6295,458,2,"wing","conv",25,"winglet",1998,289,42000,"Turbofan","A pencil. Longest single-aisle Boeing ever made, and only 55 were built."],
+["B712","717-200","Boeing","M",130,28.4,37.8,55,3815,438,2,"rear","tee",24,"none",1998,117,37000,"Turbofan","Really the last DC-9. Boeing inherited it from McDonnell Douglas and kept the name off it."],
+["B721","727-100","Boeing","M",20,32.9,40.6,77,4000,430,3,"tri","tee",32,"none",1963,131,42000,"Turbofan","Three tail engines and a built-in airstair. D.B. Cooper jumped out of one."],
+["B722","727-200","Boeing","M",60,32.9,46.7,95,4000,430,3,"tri","tee",32,"none",1967,189,42000,"Turbofan","The sound of 1970s aviation. Now almost entirely cargo and government work."],
+["B703","707-300","Boeing","H",10,44.4,46.6,152,9265,450,4,"wing","conv",35,"none",1957,189,42000,"Turbofan","The jet that started mass air travel. Barely any still fly outside military service."],
+/* ---- Airbus narrowbody ---- */
+["A320","A320","Airbus","M",4300,34.1,37.6,78,6100,447,2,"wing","conv",25,"sharklet",1987,180,39800,"Turbofan","First airliner with full fly-by-wire and a sidestick instead of a yoke."],
+["A319","A319","Airbus","M",1300,34.1,33.8,75,6900,447,2,"wing","conv",25,"sharklet",1995,156,39800,"Turbofan","Short body, full-size wing — it can outclimb almost anything else on an airway."],
+["A321","A321","Airbus","M",1600,34.1,44.5,93,5950,447,2,"wing","conv",25,"sharklet",1993,236,39800,"Turbofan","Four overwing exits on each side is the quickest way to spot one from below."],
+["A318","A318","Airbus","M",50,34.1,31.4,68,5750,447,2,"wing","conv",25,"sharklet",2002,132,39800,"Turbofan","The 'Baby Bus'. British Airways once flew one London–New York with 32 seats."],
+["A20N","A320neo","Airbus","M",2900,35.8,37.6,79,6300,447,2,"wing","conv",25,"sharklet",2014,180,39800,"Turbofan","Engines so large the nose gear had to be lengthened to fit them under the wing."],
+["A21N","A321neo","Airbus","M",1500,35.8,44.5,97,7400,447,2,"wing","conv",25,"sharklet",2016,244,39800,"Turbofan","The long-range version now flies transatlantic routes on a single aisle."],
+["A19N","A319neo","Airbus","M",60,35.8,33.8,75,6850,447,2,"wing","conv",25,"sharklet",2017,160,39800,"Turbofan","Barely ordered — most airlines skipped straight to the bigger neos."],
+["BCS1","A220-100","Airbus","M",90,35.1,35,63,6390,447,2,"wing","conv",25,"raked",2013,135,41000,"Turbofan","Designed in Canada as the Bombardier CSeries before Airbus took it over."],
+["BCS3","A220-300","Airbus","M",380,35.1,38.7,67,6300,447,2,"wing","conv",25,"raked",2015,160,41000,"Turbofan","Enormous windows and the quietest cabin of any single-aisle jet."],
+/* ---- widebody ---- */
+["B772","777-200","Boeing","H",380,60.9,63.7,247,9700,490,2,"wing","conv",31,"raked",1994,440,43100,"Turbofan","The first airliner designed entirely on computer — no physical mock-up was ever built."],
+["B77L","777-200LR / F","Boeing","H",340,64.8,63.7,348,15840,490,2,"wing","conv",31,"raked",2005,317,43100,"Turbofan","Holds the distance record for a commercial jet: Hong Kong to London the long way round."],
+["B77W","777-300ER","Boeing","H",820,64.8,73.9,352,13650,490,2,"wing","conv",31,"raked",2003,396,43100,"Turbofan","Its GE90 engines have a fan wider than a 737's entire cabin."],
+["B788","787-8","Boeing","H",380,60.1,56.7,228,13530,488,2,"wing","conv",32,"raked",2009,248,43000,"Turbofan","Carbon fibre body, dimmable windows, and wings that flex dramatically in flight."],
+["B789","787-9","Boeing","H",750,60.1,62.8,254,14140,488,2,"wing","conv",32,"raked",2013,296,43000,"Turbofan","The workhorse Dreamliner. Look for the sawtooth engine nacelles that cut noise."],
+["B78X","787-10","Boeing","H",130,60.1,68.3,254,11910,488,2,"wing","conv",32,"raked",2017,336,43000,"Turbofan","Longest Dreamliner, shortest range — the stretch cost it fuel capacity."],
+["B763","767-300ER","Boeing","H",600,47.6,54.9,187,11070,460,2,"wing","conv",31,"winglet",1986,269,43100,"Turbofan","The backbone of overnight parcel freight. UPS and FedEx fly hundreds."],
+["B762","767-200","Boeing","H",120,47.6,48.5,179,12200,460,2,"wing","conv",31,"none",1981,224,43100,"Turbofan","One famously glided 100 km after running dry — the 'Gimli Glider'."],
+["B764","767-400ER","Boeing","H",36,51.9,61.4,204,10415,460,2,"wing","conv",31,"raked",1999,304,43100,"Turbofan","Only 37 were built. Raked wingtips instead of winglets give it away."],
+["B744","747-400","Boeing","H",300,64.4,70.7,397,13450,490,4,"wing","conv",37,"winglet",1988,416,45000,"Turbofan","The Queen of the Skies. Most passenger examples are gone; freighters carry on."],
+["B748","747-8","Boeing","H",130,68.4,76.3,448,14320,495,4,"wing","conv",37,"raked",2010,467,43100,"Turbofan","The last 747 rolled out in 2023. A finite population that can only shrink."],
+["B742","747-200","Boeing","H",25,59.6,70.7,378,12700,490,4,"wing","conv",37,"none",1970,452,45000,"Turbofan","Short upper deck with three windows. Air Force One is still a 747-200."],
+["B74S","747SP","Boeing","H",4,59.6,56.3,318,12320,490,4,"wing","conv",37,"none",1975,331,45000,"Turbofan","A 747 with 14 metres cut out of it. Under five still fly. A trophy catch."],
+["BLCF","747 Dreamlifter","Boeing","H",4,64.4,71.7,364,7800,478,4,"wing","conv",37,"none",2006,0,43000,"Turbofan","A 747 with a swollen bubble body that swings open at the tail. Four exist."],
+["A332","A330-200","Airbus","H",580,60.3,58.8,242,13400,470,2,"wing","conv",30,"winglet",1997,293,41100,"Turbofan","Shorter and longer-legged than the -300. Widely used as a tanker by air forces."],
+["A333","A330-300","Airbus","H",700,60.3,63.7,242,11750,470,2,"wing","conv",30,"winglet",1992,335,41100,"Turbofan","Airbus built it alongside the four-engined A340 using an identical fuselage."],
+["A339","A330-900neo","Airbus","H",190,64,63.7,251,13300,470,2,"wing","conv",30,"sharklet",2017,300,41100,"Turbofan","Curved sharklets and a longer wing separate it from the older A330."],
+["A338","A330-800neo","Airbus","H",12,64,58.8,251,15090,470,2,"wing","conv",30,"sharklet",2018,257,41100,"Turbofan","Almost nobody bought it. Kuwait Airways flies most of the tiny fleet."],
+["A359","A350-900","Airbus","H",620,64.8,66.8,280,15000,488,2,"wing","conv",32,"raked",2013,325,43100,"Turbofan","Black mask around the cockpit windows and wingtips that curve up like a blade."],
+["A35K","A350-1000","Airbus","H",160,64.8,73.8,319,16100,488,2,"wing","conv",32,"raked",2016,410,43100,"Turbofan","Six-wheel main gear instead of four — the quickest way to tell it from a -900."],
+["A343","A340-300","Airbus","H",100,60.3,63.7,276,13500,475,4,"wing","conv",30,"winglet",1992,295,41100,"Turbofan","Four engines, famously underpowered. Crews joked it took a curvature of the Earth to climb."],
+["A346","A340-600","Airbus","H",30,63.4,75.3,380,14450,475,4,"wing","conv",30,"winglet",2001,380,41100,"Turbofan","For years the longest airliner in the world. Very few still fly."],
+["A388","A380-800","Airbus","J",200,79.8,72.7,575,14800,490,4,"wing","conv",34,"raked",2005,853,43000,"Turbofan","The only full-length double-decker ever built, and the only 'Super' you'll realistically catch."],
+["A306","A300-600","Airbus","H",180,44.8,54.1,171,7500,460,2,"wing","conv",28,"none",1972,266,40000,"Turbofan","The world's first twin-engine widebody, and the aircraft that founded Airbus."],
+["A3ST","A300 Beluga","Airbus","H",5,44.8,56.2,155,2780,400,2,"wing","conv",28,"none",1994,0,35000,"Turbofan","Named after the whale for obvious reasons. It hauls aircraft parts between factories."],
+["A33X","BelugaXL","Airbus","H",6,60.3,63.1,227,4074,470,2,"wing","conv",30,"winglet",2018,0,35000,"Turbofan","The replacement Beluga, painted with a cartoon whale eye and smile."],
+["A310","A310","Airbus","H",50,43.9,46.7,164,9600,460,2,"wing","conv",28,"winglet",1982,240,41000,"Turbofan","Shrunken A300 with a new wing. Canada and Germany fly them as military transports."],
+["MD11","MD-11","Boeing","H",120,51.7,61.6,286,12670,473,3,"tri","conv",35,"winglet",1990,410,43000,"Turbofan","Three engines, one buried in the tail. FedEx keeps the last big fleet flying."],
+["DC10","DC-10","McDonnell Douglas","H",25,50.4,55.5,259,9600,473,3,"tri","conv",35,"none",1970,380,42000,"Turbofan","A handful survive as aerial firefighting tankers dropping retardant on wildfires."],
+["L101","L-1011 TriStar","Lockheed","H",2,47.3,54.2,231,7400,470,3,"tri","conv",35,"none",1970,400,42000,"Turbofan","Technically brilliant, commercially ruinous. Its failure ended Lockheed's airliner business."],
+["IL76","Il-76","Ilyushin","H",300,50.5,46.6,190,4400,432,4,"wing","tee",25,"none",1971,140,42000,"Turbofan","Glazed navigator's nose like a bomber. Hauls freight into places with no runway to speak of."],
+["A124","An-124 Ruslan","Antonov","H",26,73.3,69.1,405,5200,432,4,"wing","conv",32,"none",1982,88,39000,"Turbofan","Nose and tail both open. It carries locomotives, yachts and other aircraft."],
+/* ---- regional ---- */
+["E170","E170","Embraer","M",180,26,29.9,38,3900,447,2,"wing","tee",23,"winglet",2002,78,41000,"Turbofan","Two-by-two seating means no middle seat anywhere on board."],
+["E75L","E175","Embraer","M",800,26,31.7,40,3700,447,2,"wing","tee",23,"winglet",2003,88,41000,"Turbofan","The default American regional jet — SkyWest and Republic fly them by the hundred."],
+["E190","E190","Embraer","M",550,28.7,36.2,51,4500,447,2,"wing","tee",23,"winglet",2004,114,41000,"Turbofan","Big enough to be a mainline jet, small enough to be a regional one."],
+["E195","E195","Embraer","M",160,28.7,38.7,52,4100,447,2,"wing","tee",23,"winglet",2004,124,41000,"Turbofan","Popular across Europe and Brazil, rarely seen in the United States."],
+["E290","E190-E2","Embraer","M",40,33.7,36.2,56,5300,447,2,"wing","tee",23,"raked",2016,114,41000,"Turbofan","New geared engines and a much longer wing than the original E190."],
+["E295","E195-E2","Embraer","M",70,35.1,41.5,61,4800,447,2,"wing","tee",23,"raked",2017,146,41000,"Turbofan","Some wear an eye-watering shark or eagle paint scheme straight from the factory."],
+["E145","ERJ-145","Embraer","M",550,20,29.9,22,2800,415,2,"rear","tee",23,"winglet",1995,50,37000,"Turbofan","A single-file cabin — one seat on the left, two on the right, and nowhere to stand up."],
+["E135","ERJ-135","Embraer","M",100,20,26.3,20,3240,415,2,"rear","tee",23,"winglet",1998,37,37000,"Turbofan","Shortened ERJ. Many became corporate shuttles for sports teams."],
+["CRJ2","CRJ-200","Bombardier","M",600,21.2,26.8,24,3045,424,2,"rear","tee",25,"winglet",1991,50,41000,"Turbofan","Grew out of a business jet, which is why the ceiling is so low."],
+["CRJ7","CRJ-700","Bombardier","M",300,23.2,32.3,33,3600,447,2,"rear","tee",25,"winglet",1999,78,41000,"Turbofan","Stretched CRJ with a proper wing and a cabin you can almost stand up in."],
+["CRJ9","CRJ-900","Bombardier","M",420,24.9,36.4,38,2900,447,2,"rear","tee",25,"winglet",2001,90,41000,"Turbofan","The most common CRJ on American regional routes today."],
+["CRJX","CRJ-1000","Bombardier","M",50,26.2,39.1,42,3000,447,2,"rear","tee",25,"winglet",2008,104,41000,"Turbofan","The longest CRJ. Almost exclusively European — a rare North American catch."],
+["DH8D","Dash 8 Q400","De Havilland","M",500,28.4,32.8,29,2040,360,2,"wing","tee",0,"none",1998,90,27000,"Turbofan","Fastest turboprop airliner in service — it can keep pace with regional jets on short hops."],
+["DH8C","Dash 8-300","De Havilland","M",200,27.4,25.7,19,1700,287,2,"wing","tee",0,"none",1987,50,25000,"Turboprop","High wing, tall gear, and that distinctive T-tail. Built for rough short strips."],
+["DH8A","Dash 8-100","De Havilland","M",150,25.9,22.3,16,1890,270,2,"wing","tee",0,"none",1983,39,25000,"Turboprop","The original Dash 8. Still working hard across Canada and the Pacific."],
+["AT72","ATR 72","ATR","M",1000,27.1,27.2,23,1528,275,2,"wing","tee",0,"none",1988,78,25000,"Turboprop","Franco-Italian, high-winged, and everywhere in Europe and Asia."],
+["AT45","ATR 42","ATR","M",380,24.6,22.7,18,1326,300,2,"wing","tee",0,"none",1984,48,25000,"Turboprop","Shorter ATR. One variant flies scheduled service to Greenland's ice-edge airstrips."],
+["SF34","Saab 340","Saab","M",200,21.4,19.7,13,1730,282,2,"wing","conv",0,"none",1983,34,25000,"Turboprop","Swedish, low-winged, and unusually quiet inside for a turboprop."],
+["SB20","Saab 2000","Saab","M",30,24.8,27.3,23,2870,370,2,"wing","conv",0,"none",1992,50,31000,"Turboprop","Blisteringly fast for a propeller aircraft. Only 63 were built."],
+["B190","Beech 1900D","Beechcraft","M",350,17.6,17.6,7,2500,280,2,"wing","tee",0,"none",1982,19,25000,"Turboprop","Little winglets on the tailplane — Beechcraft called them 'tailerons'."],
+["SW4","Metroliner","Fairchild","M",200,17.4,18.1,7,2130,290,2,"wing","conv",0,"none",1969,19,25000,"Turboprop","Nicknamed the 'San Antonio Sewer Pipe'. Long, thin and unloved by tall passengers."],
+["DHC6","DHC-6 Twin Otter","De Havilland","M",600,19.8,15.8,5.7,1480,182,2,"wing","conv",0,"none",1965,19,25000,"Turboprop","Lands on gravel, water, snow and glaciers. Flies in Antarctica and Nepal alike."],
+["L410","L-410 Turbolet","LET","M",300,19.5,14.4,6.6,1500,205,2,"wing","conv",0,"none",1969,19,20000,"Turboprop","Czech-built bush workhorse, still in production after fifty-plus years."],
+["F100","Fokker 100","Fokker","M",100,28.1,35.5,45,3170,440,2,"rear","tee",17,"none",1986,109,35000,"Turbofan","Fokker went bankrupt in 1996, so the fleet can only shrink from here."],
+["F70","Fokker 70","Fokker","M",30,28.1,30.9,41,3410,440,2,"rear","tee",17,"none",1993,80,35000,"Turbofan","Shortened Fokker 100. A genuinely uncommon sight anywhere."],
+["MD82","MD-82","McDonnell Douglas","M",70,32.9,45.1,68,3800,438,2,"rear","tee",24,"none",1981,172,37000,"Turbofan","Rear-engined, so the back rows are loud and the front rows are library-quiet."],
+["MD83","MD-83","McDonnell Douglas","M",50,32.9,45.1,73,4600,438,2,"rear","tee",24,"none",1984,172,37000,"Turbofan","Longer-legged MD-80. Most now fly cargo or charter work."],
+["MD90","MD-90","McDonnell Douglas","M",10,32.9,46.5,71,3860,438,2,"rear","tee",24,"none",1993,172,37000,"Turbofan","Delta flew the last passenger MD-90 in 2020. Very nearly extinct."],
+["DC93","DC-9-30","McDonnell Douglas","M",15,28.4,36.4,49,2780,430,2,"rear","tee",24,"none",1965,115,35000,"Turbofan","First flew in 1965. The handful left are freighters and government aircraft."],
+/* ---- business jets ---- */
+["C56X","Citation Excel / XLS","Cessna","M",1000,17.2,15.8,9,3400,441,2,"rear","tee",0,"winglet",1996,9,45000,"Turbofan","The best-selling midsize business jet ever. Stand-up cabin in a small airframe."],
+["C25A","Citation CJ2","Cessna","L",280,15.2,14.5,5.6,3200,413,2,"rear","tee",0,"none",2000,7,45000,"Turbofan","Straight wing, small, and simple enough to be flown single-pilot."],
+["C25B","Citation CJ3","Cessna","L",600,16.3,15.6,6,3700,416,2,"rear","tee",0,"none",2003,8,45000,"Turbofan","The sweet spot of the CJ family — owner-flown by a lot of its buyers."],
+["C25C","Citation CJ4","Cessna","L",380,15.5,16.3,7.8,4010,451,2,"rear","tee",13,"none",2008,9,45000,"Turbofan","The only CJ with a swept wing, which is how you tell it from its siblings."],
+["C510","Citation Mustang","Cessna","L",450,13.2,12.4,3.9,2161,340,2,"rear","tee",0,"none",2006,4,41000,"Turbofan","A jet small enough that one person can legally fly it alone. Out of production."],
+["C68A","Citation Latitude","Cessna","M",400,22.1,19.1,14,5200,446,2,"rear","tee",0,"winglet",2014,9,45000,"Turbofan","Flat floor and a proper oval cabin — a big jump in comfort over the older Citations."],
+["C700","Citation Longitude","Cessna","M",150,20.9,22.9,17.9,6500,483,2,"rear","tee",28,"winglet",2016,12,45000,"Turbofan","Cessna's largest jet, with the quietest cabin they've ever certified."],
+["C750","Citation X","Cessna","M",300,21.1,22.1,16,6000,528,2,"rear","tee",37,"winglet",1993,12,51000,"Turbofan","For years the fastest civil aircraft in the world — Mach 0.935 at the redline."],
+["GLF4","Gulfstream IV","Gulfstream","M",700,23.7,26.9,33,7820,459,2,"rear","tee",27,"winglet",1985,16,45000,"Turbofan","Six oval windows down each side — the classic Gulfstream signature."],
+["GLF5","Gulfstream V / G550","Gulfstream","M",900,28.5,29.4,41,12500,488,2,"rear","tee",27,"winglet",1995,18,51000,"Turbofan","Can fly from New York to Tokyo without stopping, above almost all weather."],
+["GLF6","Gulfstream G650","Gulfstream","M",550,30.4,30.4,45,13890,516,2,"rear","tee",36,"raked",2009,19,51000,"Turbofan","Cruises at Mach 0.925 and climbs to 51,000 feet — above every airliner."],
+["G280","Gulfstream G280","Gulfstream","M",250,19.2,20.3,17.9,6667,459,2,"rear","tee",27,"winglet",2009,10,45000,"Turbofan","Built in Israel by IAI, finished in Texas by Gulfstream."],
+["CL60","Challenger 600 series","Bombardier","M",1000,19.6,20.9,22,7400,459,2,"rear","tee",25,"winglet",1978,12,41000,"Turbofan","Its fuselage cross-section later became the CRJ airliner."],
+["CL35","Challenger 350","Bombardier","M",450,21,20.9,18.4,5926,459,2,"rear","tee",25,"winglet",2013,10,45000,"Turbofan","The most-flown super-midsize jet in fractional ownership fleets."],
+["CL30","Challenger 300","Bombardier","M",350,19.5,20.9,17.6,5741,459,2,"rear","tee",25,"winglet",2001,9,45000,"Turbofan","Straight wing, huge baggage hold you can reach in flight."],
+["GLEX","Global Express / 6000","Bombardier","M",700,28.7,30.3,45,11112,488,2,"rear","tee",35,"winglet",1996,17,51000,"Turbofan","Big enough for a separate bedroom at the back."],
+["GL7T","Global 7500","Bombardier","M",180,31.7,33.9,52,14260,516,2,"rear","tee",35,"raked",2016,19,51000,"Turbofan","Four true living zones and the longest range of any business jet built."],
+["F2TH","Falcon 2000","Dassault","M",550,21.4,20.2,17,6020,470,2,"rear","tee",29,"winglet",1993,10,47000,"Turbofan","Dassault builds fighters too, and it shows in how these things handle."],
+["FA7X","Falcon 7X","Dassault","M",280,26.2,23.4,32,11000,488,3,"tri","tee",34,"winglet",2005,16,51000,"Turbofan","Three engines on a business jet — nothing else in the class looks like it."],
+["FA8X","Falcon 8X","Dassault","M",120,26.3,24.5,33,11945,488,3,"tri","tee",34,"winglet",2015,16,51000,"Turbofan","Stretched 7X. The three-engine tail cluster makes it unmistakable from below."],
+["F900","Falcon 900","Dassault","M",400,19.3,20.2,21,7400,470,3,"tri","tee",29,"winglet",1984,14,51000,"Turbofan","Trijet with a short field performance that lets it use small mountain airports."],
+["LJ45","Learjet 45 / 75","Learjet","L",550,14.6,17.7,9,3700,464,2,"rear","tee",13,"winglet",1995,9,51000,"Turbofan","Learjet closed in 2022, so every one flying is from a closed line."],
+["LJ35","Learjet 35","Learjet","L",300,12,14.8,8.3,4066,460,2,"rear","tee",13,"none",1973,8,45000,"Turbofan","Tip tanks on the wingtips instead of winglets. Loud, fast, and beloved."],
+["LJ60","Learjet 60","Learjet","L",250,13.3,17.9,10.6,4500,466,2,"rear","tee",13,"winglet",1990,8,51000,"Turbofan","Climbs to 41,000 feet in under twenty minutes."],
+["E55P","Phenom 300","Embraer","L",800,16.2,15.9,8,3650,453,2,"rear","tee",0,"winglet",2008,9,45000,"Turbofan","The most-delivered light jet in the world for over a decade running."],
+["E50P","Phenom 100","Embraer","L",380,12.3,12.8,4.8,2182,390,2,"rear","tee",0,"none",2007,5,41000,"Turbofan","Entry-level jet with a cabin designed by BMW's design studio."],
+["E545","Praetor 500 / Legacy 450","Embraer","M",150,20.7,19.7,17,5788,466,2,"rear","tee",27,"winglet",2013,9,45000,"Turbofan","Fly-by-wire in a midsize jet, which is still unusual in this class."],
+["H25B","Hawker 800 / 900","Hawker","M",500,16.5,15.6,12.7,5000,448,2,"rear","tee",20,"winglet",1983,8,41000,"Turbofan","British lineage going back to the 1960s de Havilland 125."],
+["PC24","PC-24","Pilatus","L",250,17,16.9,8,3700,440,2,"rear","tee",0,"none",2015,10,45000,"Turbofan","The only business jet certified for unpaved runways. Swiss, and stubborn about it."],
+["SBR1","Sabreliner","Rockwell","M",40,13.6,14.3,10.4,3300,450,2,"rear","conv",28,"none",1958,9,45000,"Turbofan","A 1950s design with a distinctive curved windshield. Very few remain."],
+["HDJT","HondaJet","Honda","L",250,12.1,12.9,4.9,2661,422,2,"wing","tee",0,"none",2003,6,43000,"Turbofan","Engines mounted on pylons above the wing — nothing else looks like this."],
+/* ---- turboprop singles & utility ---- */
+["C208","Caravan","Cessna","L",2800,15.9,12.7,3.9,1982,186,1,"nose","conv",0,"none",1982,14,25000,"Turboprop","Skydivers, island hoppers and parcel runs. Some fly on floats."],
+["PC12","PC-12","Pilatus","L",1900,16.3,14.4,4.7,3417,285,1,"nose","tee",0,"winglet",1991,9,30000,"Turboprop","One engine, pressurised, and a cargo door big enough for a snowmobile."],
+["TBM9","TBM 900 series","Daher","L",700,12.8,10.7,3.4,3241,330,1,"nose","conv",0,"none",1988,6,31000,"Turboprop","The fastest single-engine turboprop you can buy — over 320 knots."],
+["EPIC","Epic E1000","Epic","L",100,13.1,10.9,3.4,2778,333,1,"nose","conv",0,"none",2004,6,34000,"Turboprop","Carbon fibre, owner-flown, and startlingly quick for a single."],
+["BE20","King Air 200","Beechcraft","L",2600,16.6,13.3,5.7,3300,289,2,"wing","tee",0,"none",1972,9,35000,"Turboprop","T-tail and twin props. Air ambulances, surveyors and charters all fly them."],
+["BE9L","King Air 90","Beechcraft","L",1500,15.3,10.8,4.6,2000,226,2,"wing","conv",0,"none",1963,7,30000,"Turboprop","The original King Air, with a conventional tail rather than a T."],
+["B350","King Air 350","Beechcraft","M",1500,17.7,14.2,6.8,3338,312,2,"wing","tee",0,"winglet",1988,11,35000,"Turboprop","Winglets and a longer body. The most-produced business turboprop line ever."],
+["C441","Conquest II","Cessna","L",250,15.0,11.9,4.5,3500,290,2,"wing","conv",0,"none",1975,8,35000,"Turboprop","Pressurised twin turboprop from the era before light jets took over."],
+["AN2","An-2 Colt","Antonov","L",1500,18.2,12.4,5.5,845,100,1,"nose","conv",0,"none",1947,12,14000,"Piston","A giant biplane. It can technically fly backwards in a strong enough headwind."],
+/* ---- piston GA ---- */
+["C172","Skyhawk","Cessna","L",25000,11,8.3,1.1,1272,122,1,"nose","conv",0,"none",1955,4,14000,"Piston","The most-produced aircraft in history. Almost every pilot alive learned in one."],
+["C152","Cessna 152","Cessna","L",5000,10.2,7.3,0.8,795,107,1,"nose","conv",0,"none",1977,2,14700,"Piston","Two seats and not an inch spare. A trainer, purely and simply."],
+["C150","Cessna 150","Cessna","L",8000,10.2,7.3,0.7,675,100,1,"nose","conv",0,"none",1957,2,14000,"Piston","The 152's older sibling. Thousands are still teaching people to fly."],
+["C182","Skylane","Cessna","L",14000,11,8.8,1.4,1722,145,1,"nose","conv",0,"none",1956,4,18100,"Piston","The Skyhawk's stronger cousin — more power, more load, more nose weight."],
+["C210","Centurion","Cessna","L",3000,11.2,8.6,1.7,2000,175,1,"nose","conv",0,"none",1957,6,17300,"Piston","Retractable gear and no wing struts. The fast Cessna single."],
+["C206","Stationair","Cessna","L",4000,10.9,8.6,1.6,1352,140,1,"nose","conv",0,"none",1964,6,15700,"Piston","Double cargo doors on the right. The pickup truck of light aircraft."],
+["C310","Cessna 310","Cessna","L",2000,11.3,9.7,2.4,1500,190,2,"wing","conv",0,"none",1953,6,19700,"Piston","Tip tanks and a 1950s silhouette. Flew as the star of TV's Sky King."],
+["C337","Skymaster","Cessna","L",900,11.6,9.1,2.1,1400,160,2,"tri","twin",0,"none",1961,6,18000,"Piston","One propeller in front, one behind, twin tail booms. Truly strange to see."],
+["PA28","Cherokee / Archer","Piper","L",22000,10.7,7.3,1.1,1200,125,1,"nose","conv",0,"none",1960,4,14000,"Piston","Low wing, one door. The main alternative to a Skyhawk at any flight school."],
+["P28R","Arrow","Piper","L",4000,10.8,7.5,1.2,1500,137,1,"nose","conv",0,"none",1967,4,16200,"Piston","A Cherokee with retractable gear — the classic complex-aircraft trainer."],
+["PA18","Super Cub","Piper","L",5000,10.7,6.9,0.8,740,100,1,"nose","conv",0,"none",1949,2,19000,"Piston","Tundra tyres, fabric wings, and it lands almost anywhere flat and short."],
+["PA31","Navajo","Piper","L",1500,12.4,9.9,3.2,2100,220,2,"wing","conv",0,"none",1964,8,26300,"Piston","Cabin-class piston twin, the backbone of small charter for decades."],
+["PA34","Seneca","Piper","L",2500,11.9,8.7,2.1,1500,180,2,"wing","conv",0,"none",1971,6,25000,"Piston","Counter-rotating propellers, so there's no critical engine to worry about."],
+["PA46","Malibu / M350","Piper","L",1200,13.1,8.7,2.3,2800,213,1,"nose","conv",0,"none",1982,6,25000,"Piston","A pressurised single-engine piston — a very rare combination."],
+["PA44","Seminole","Piper","L",600,11.8,8.4,1.7,1500,162,2,"wing","tee",0,"none",1976,4,15000,"Piston","T-tail twin used almost exclusively for multi-engine training."],
+["SR22","SR22","Cirrus","L",7000,11.7,7.9,1.6,2000,183,1,"nose","conv",0,"none",2000,5,17500,"Piston","It has a parachute for the whole aircraft, which has saved over 250 lives."],
+["SR20","SR20","Cirrus","L",2000,11.7,7.9,1.4,1500,155,1,"nose","conv",0,"none",1995,5,17500,"Piston","Same airframe and parachute as the SR22 with a smaller engine."],
+["DA40","DA40 Diamond Star","Diamond","L",2500,11.9,8.1,1.2,1300,150,1,"nose","tee",0,"none",1997,4,16400,"Piston","Composite, glider-like wings, and one of the best safety records in GA."],
+["DA42","DA42 Twin Star","Diamond","L",1000,13.4,8.6,1.8,2000,170,2,"wing","tee",0,"none",2002,4,18000,"Piston","Diesel engines that run on jet fuel — unusual for a light twin."],
+["DA62","DA62","Diamond","L",400,14.6,9.1,2.3,2400,192,2,"wing","tee",0,"none",2012,7,20000,"Piston","Seven seats, two diesels, and gullwing doors."],
+["BE36","Bonanza A36","Beechcraft","L",3000,10.2,8.4,1.7,1700,176,1,"nose","conv",0,"none",1968,6,18500,"Piston","Beechcraft has built Bonanzas continuously since 1947 — the longest production run in aviation."],
+["BE35","V-tail Bonanza","Beechcraft","L",5000,10.2,7.7,1.5,1500,170,1,"nose","conv",0,"none",1945,4,18000,"Piston","Two tail surfaces in a V instead of three. Nicknamed the 'forked-tail doctor killer'."],
+["BE58","Baron 58","Beechcraft","L",2200,11.5,9.1,2.5,2900,200,2,"wing","conv",0,"none",1969,6,20700,"Piston","The refined piston twin — fast, heavy and beautifully finished."],
+["BE76","Duchess","Beechcraft","L",400,11.6,8.9,1.8,1400,158,2,"wing","tee",0,"none",1974,4,20000,"Piston","A light twin trainer with a T-tail, out of production since 1983."],
+["M20P","Mooney M20","Mooney","L",6000,11,7.5,1.3,1900,180,1,"nose","conv",0,"none",1953,4,20000,"Piston","The vertical tail leans forward, which no other aircraft does. Instantly recognisable."],
+["AA5","Grumman Tiger","Grumman","L",1800,9.6,6.7,1.1,1400,143,1,"nose","conv",0,"none",1970,4,13800,"Piston","Sliding canopy instead of doors. Bonded aluminium construction, no rivets."],
+["RV7","Van's RV-7","Van's","L",1800,7.6,6.2,0.8,1300,180,1,"nose","conv",0,"none",2001,2,20000,"Piston","Home-built from a kit. Over 11,000 Van's aircraft have been finished in garages."],
+["RV10","Van's RV-10","Van's","L",1200,9.8,7.4,1.2,1500,175,1,"nose","conv",0,"none",2003,4,20000,"Piston","A four-seat kit aircraft that outruns most factory-built singles."],
+["GA8","GA8 Airvan","GippsAero","L",250,12.4,8.9,1.9,1352,125,1,"nose","conv",0,"none",1995,8,20000,"Piston","Australian utility aircraft with huge square windows for sightseeing."],
+["STEA","Stearman","Boeing","L",1000,9.8,7.6,1.2,805,85,1,"nose","conv",0,"none",1934,2,11200,"Piston","An open-cockpit biplane that trained WWII pilots. Now flies airshows and crop dusters."],
+["DC3","DC-3","Douglas","M",150,29,19.7,11.4,2400,180,2,"wing","conv",0,"none",1935,32,23200,"Piston","First flew in 1935 and some are still earning a living. Nothing else has that record."],
+["GLID","Sailplane","Various","L",8000,15,7,0.5,0,60,0,"none","tee",0,"none",1950,1,30000,"None","No engine at all. It stays up by finding air that's going up faster than it falls."],
+["BALL","Hot Air Balloon","Various","L",7000,0,0,0,0,10,0,"none","none",0,"none",1783,4,10000,"None","The oldest flying technology there is. It can only go where the wind goes."],
+/* ---- helicopters ---- */
+["R44","Robinson R44","Robinson","L",5500,10.1,9.1,1.1,560,109,1,"nose","rotor",0,"none",1990,4,14000,"Piston","The most-produced civil helicopter in the world since the year 2000."],
+["R22","Robinson R22","Robinson","L",2500,7.7,8.8,0.6,400,96,1,"nose","rotor",0,"none",1975,2,14000,"Piston","Tiny, twitchy, and how most civilian helicopter pilots learn."],
+["R66","Robinson R66","Robinson","L",1300,10.1,9.1,1.3,650,110,1,"nose","rotor",0,"none",2007,5,14000,"Turboshaft","Robinson's first turbine. Same shape as the R44 with more power and a bigger hold."],
+["EC35","Airbus H135","Airbus Helicopters","L",1400,10.2,10.2,2.9,635,137,2,"nose","rotor",0,"none",1994,7,20000,"Turboshaft","The shrouded fan-in-fin tail rotor makes it much quieter — common on air ambulances."],
+["EC45","Airbus H145","Airbus Helicopters","L",1600,11,13.6,3.7,670,133,2,"nose","rotor",0,"none",1999,10,20000,"Turboshaft","Clamshell rear doors let a stretcher load straight in from behind."],
+["AS50","AS350 Écureuil","Airbus Helicopters","L",4500,10.7,10.9,2.3,662,133,1,"nose","rotor",0,"none",1974,6,23000,"Turboshaft","One landed on the summit of Everest in 2005 — still the highest helicopter landing ever."],
+["EC30","Airbus H130","Airbus Helicopters","L",800,10.7,10.9,2.5,606,130,1,"nose","rotor",0,"none",1999,8,23000,"Turboshaft","Wide single-engine cabin built for tourist flights over canyons and volcanoes."],
+["B06","Bell 206 JetRanger","Bell","L",4500,10.2,9.5,1.5,690,115,1,"nose","rotor",0,"none",1962,5,13500,"Turboshaft","The archetypal news and traffic helicopter of the late twentieth century."],
+["B407","Bell 407","Bell","L",1500,10.7,10.9,2.6,611,133,1,"nose","rotor",0,"none",1995,7,18690,"Turboshaft","Four-blade rotor instead of the JetRanger's two — much smoother in the cabin."],
+["B429","Bell 429","Bell","L",400,11,12.7,3.4,761,150,2,"nose","rotor",0,"none",2007,8,20000,"Turboshaft","Flat floor and a very quiet main rotor. Common in police and EMS work."],
+["B412","Bell 412","Bell","L",700,14,17.1,5.4,745,122,2,"nose","rotor",0,"none",1979,15,20000,"Turboshaft","Four-blade Huey descendant. Firefighting, offshore and military work worldwide."],
+["S76","Sikorsky S-76","Sikorsky","M",600,13.4,13.2,5.3,761,155,2,"nose","rotor",0,"none",1977,12,15000,"Turboshaft","Built for offshore oil crews, adopted by corporate and royal flights."],
+["S92","Sikorsky S-92","Sikorsky","M",300,17.2,20.9,12,999,151,2,"nose","rotor",0,"none",1998,19,15000,"Turboshaft","The standard long-range offshore platform helicopter, and a US presidential type."],
+["H60","UH-60 Black Hawk","Sikorsky","M",3500,16.4,19.8,10,590,159,2,"nose","rotor",0,"none",1974,14,19000,"Turboshaft","Wide, low and unmistakable overhead. Its rotor slap carries for miles."],
+["A139","AW139","Leonardo","M",1200,13.8,16.7,7,1061,167,2,"nose","rotor",0,"none",2001,15,20000,"Turboshaft","Italian, fast, and the default for offshore and VIP work in the last twenty years."],
+["A109","AW109","Leonardo","L",800,11,13,3.2,932,154,2,"nose","rotor",0,"none",1971,7,19600,"Turboshaft","Retractable landing gear on a helicopter — rare, and it makes it noticeably fast."],
+["H500","MD 500","MD Helicopters","L",1600,8.1,7.5,1.4,430,134,1,"nose","rotor",0,"none",1963,5,16000,"Turboshaft","The little egg-shaped one. Agile enough to have been a film-stunt favourite for decades."],
+["CH47","CH-47 Chinook","Boeing","H",1200,18.3,30.1,22.7,741,170,2,"nose","rotor",0,"none",1961,55,20000,"Turboshaft","Two rotors and no tail rotor. Nothing else in the sky sounds like it."],
+["AH64","AH-64 Apache","Boeing","M",1200,14.6,17.7,10.4,476,143,2,"nose","rotor",0,"none",1975,2,20000,"Turboshaft","Two crew in tandem and a sensor ball on the nose. Rarely flies alone."],
+["UH1","UH-1 Huey","Bell","M",1500,14.6,17.4,4.3,510,110,1,"nose","rotor",0,"none",1956,14,19390,"Turboshaft","The two-blade rotor makes a distinctive slapping beat you hear before you see it."],
+["S64","S-64 Skycrane","Erickson","H",30,22,26.9,21,370,100,2,"nose","rotor",0,"none",1962,3,9000,"Turboshaft","A flying spine with no cargo body at all. Lifts fire tanks and rooftop air conditioners."],
+/* ---- military ---- */
+["C130","C-130 Hercules","Lockheed","M",1800,40.4,29.8,70,3800,320,4,"wing","conv",0,"none",1954,92,33000,"Turboprop","In continuous production since 1956 — the longest of any military aircraft."],
+["C30J","C-130J Super Hercules","Lockheed","M",500,40.4,29.8,74,5250,348,4,"wing","conv",0,"none",1996,128,28000,"Turboprop","Six-blade scimitar propellers instead of four straight ones — that's the tell."],
+["C17","C-17 Globemaster III","Boeing","H",270,51.8,53,265,4480,450,4,"wing","tee",25,"winglet",1991,102,45000,"Turbofan","Huge, yet it can land on a 1,000-metre dirt strip and reverse itself back out."],
+["C5M","C-5M Super Galaxy","Lockheed","J",50,67.9,75.3,381,4440,450,4,"wing","tee",25,"none",1968,73,34000,"Turbofan","The nose lifts up like a visor. One of only a few 'Super' wake category aircraft."],
+["K35R","KC-135 Stratotanker","Boeing","H",400,39.9,41.5,146,2419,460,4,"wing","conv",35,"none",1956,80,50000,"Turbofan","A 1950s airframe still refuelling aircraft designed fifty years after it."],
+["KC46","KC-46 Pegasus","Boeing","H",80,48.1,50.5,188,12200,460,2,"wing","conv",31,"raked",2015,114,43000,"Turbofan","A 767 rebuilt as a tanker. The boom operator flies it by camera, not by looking down."],
+["A400","A400M Atlas","Airbus","H",120,42.4,45.1,141,8900,422,4,"wing","tee",0,"none",2009,116,40000,"Turboprop","Its propellers turn in opposite directions on each wing — the blade pattern looks wrong."],
+["E3TF","E-3 Sentry AWACS","Boeing","H",50,44.4,46.6,148,9250,430,4,"wing","conv",35,"none",1975,0,35000,"Turbofan","The rotating radar disc on struts above the fuselage is visible from the ground."],
+["E2","E-2 Hawkeye","Northrop Grumman","M",130,24.6,17.6,26,2708,300,2,"wing","quad",0,"none",1960,5,34700,"Turboprop","Four tail fins and a radar disc, folded onto a carrier deck barely longer than it."],
+["P8","P-8 Poseidon","Boeing","M",180,37.6,39.5,86,8300,453,2,"wing","conv",25,"raked",2009,9,41000,"Turbofan","A 737 hunting submarines. Look for the sensor bulges and the tail sting."],
+["P3","P-3 Orion","Lockheed","M",150,30.4,35.6,64,8944,328,4,"wing","conv",0,"none",1959,11,28300,"Turboprop","The long spike out the back is a magnetic sensor for detecting submarines."],
+["C40","C-40 Clipper","Boeing","M",30,35.8,33.6,77,8000,453,2,"wing","conv",25,"winglet",1999,121,41000,"Turbofan","A 737 in navy grey. Ferries crews, cargo and occasionally politicians."],
+["F16","F-16 Fighting Falcon","General Dynamics","M",2100,9.8,15,19,4220,1000,1,"rear","conv",40,"none",1974,1,50000,"Turbofan","One engine, one tail, a bubble canopy and a belly air intake. Flown by 25 air forces."],
+["F15","F-15 Eagle","McDonnell Douglas","M",900,13.1,19.4,30,4000,1000,2,"rear","twin",38,"none",1972,2,65000,"Turbofan","Two tails and a huge flat wing. Its air combat record is famously one-sided."],
+["F18","F/A-18 Hornet","McDonnell Douglas","M",800,13.6,17.1,29,3330,1000,2,"rear","twin",26,"none",1978,2,50000,"Turbofan","Twin tails angled outward. Carrier-capable, which means it's built extremely strong."],
+["EA18","EA-18G Growler","Boeing","M",160,13.6,18.3,30,3330,1000,2,"rear","twin",26,"none",2006,2,50000,"Turbofan","An electronic warfare Super Hornet. It carries jamming pods instead of most weapons."],
+["F22","F-22 Raptor","Lockheed Martin","M",180,13.6,18.9,38,2960,1100,2,"rear","twin",42,"none",1997,1,65000,"Turbofan","Only 187 were ever built and the line is closed. Almost nobody catches one."],
+["F35","F-35 Lightning II","Lockheed Martin","M",1000,10.7,15.7,32,2800,1050,1,"rear","twin",34,"none",2006,1,50000,"Turbofan","One version can hover and land vertically by swivelling its entire exhaust."],
+["A10","A-10 Thunderbolt II","Fairchild","M",280,17.5,16.3,23,1200,300,2,"rear","twin",0,"none",1972,1,45000,"Turbofan","Two engines mounted high at the back and a gun so large the aircraft is built around it."],
+["B52","B-52 Stratofortress","Boeing","H",70,56.4,48.5,220,14080,450,8,"wing","conv",35,"none",1952,5,50000,"Turbofan","Eight engines. Crews now fly aircraft older than their grandparents' first cars."],
+["B1","B-1B Lancer","Rockwell","H",45,41.8,44.5,216,9400,700,4,"wing","conv",15,"none",1974,4,60000,"Turbofan","Its wings swing back for speed and forward for landing. Very loud, very low."],
+["B2","B-2 Spirit","Northrop Grumman","H",19,52.4,21,170,11100,550,4,"wing","none",33,"none",1989,2,50000,"Turbofan","A flying wing with no tail at all. Nineteen exist. Seeing one is a genuine event."],
+["V22","V-22 Osprey","Bell Boeing","M",400,25.8,17.5,27,1627,275,2,"wing","tee",0,"none",1989,24,25000,"Turboshaft","Its engines rotate: it takes off like a helicopter and cruises like a turboprop."],
+["T38","T-38 Talon","Northrop","L",500,7.7,14.1,5.5,1800,700,2,"rear","conv",32,"none",1959,2,50000,"Turbofan","Needle-thin supersonic trainer from 1959. NASA astronauts still fly them."],
+["T6","T-6 Texan II","Beechcraft","L",850,10.2,10.2,3.1,1667,270,1,"nose","conv",0,"none",2000,2,31000,"Turboprop","Every US military pilot starts here before moving to jets."],
+["L39","L-39 Albatros","Aero Vodochody","L",800,9.5,12.1,4.7,1100,400,1,"rear","conv",0,"tank",1968,2,37700,"Turbofan","Czech jet trainer. Hundreds are now privately owned and flown at airshows."],
+["U2","U-2 Dragon Lady","Lockheed","M",27,31.4,19.2,18,10300,410,1,"rear","conv",0,"none",1955,1,70000,"Turbofan","Glider wings on a spy plane. Pilots wear pressure suits because it flies at 70,000 feet."],
+["RQ4","RQ-4 Global Hawk","Northrop Grumman","M",40,39.9,14.5,15,22780,340,1,"rear","vee",0,"none",1998,0,60000,"Turbofan","No pilot on board. It can stay airborne for well over a day."],
+["MQ9","MQ-9 Reaper","General Atomics","L",300,20,11,4.8,1900,200,1,"rear","vee",0,"none",2001,0,50000,"Turboprop","Propeller at the back, V-tail, and a satellite dome on the nose."],
+["EUFI","Eurofighter Typhoon","Eurofighter","M",550,10.9,15.9,23.5,2900,1050,2,"rear","delta",50,"none",1994,1,65000,"Turbofan","Delta wing with small canards in front — built by four countries at once."],
+["RFAL","Rafale","Dassault","M",250,10.9,15.3,24.5,3700,1030,2,"rear","delta",48,"none",1986,1,50000,"Turbofan","France's carrier-capable delta. Compact enough for a very small deck."],
+["GRIP","JAS 39 Gripen","Saab","M",250,8.4,14.1,14,3200,1030,1,"rear","delta",45,"none",1988,1,50000,"Turbofan","Designed to be rearmed and refuelled on a public road by six conscripts."],
+["AN12","An-12","Antonov","M",100,38,33.1,61,5700,300,4,"wing","conv",0,"none",1957,90,33500,"Turboprop","Soviet-era freighter, glazed nose, still hauling odd cargo into odd places."],
+["AN26","An-26","Antonov","M",200,29.2,23.8,24,2550,235,2,"wing","conv",0,"none",1969,40,24600,"Turboprop","High wing and a ramp at the back. A common sight across Africa and Central Asia."],
+["IL62","Il-62","Ilyushin","H",8,43.2,53.1,165,10000,470,4,"rear","tee",35,"none",1963,186,42000,"Turbofan","Four engines clustered at the tail and a retractable wheel under the rear to stop it tipping."],
+["TU95","Tu-95 Bear","Tupolev","H",60,50.1,46.2,188,15000,400,4,"wing","conv",35,"none",1952,7,45000,"Turboprop","Contra-rotating propellers with supersonic blade tips. Possibly the loudest aircraft ever built."],
+/* ---- ghosts: real, and no longer flying ---- */
+["CONC","Concorde","Aérospatiale / BAC","H",0,25.6,61.7,185,7250,1176,4,"wing","delta",60,"none",1969,100,60000,"Turbojet","Cruised at twice the speed of sound. Twenty were built, none fly, and none ever will again."],
+["A225","An-225 Mriya","Antonov","J",0,88.4,84,640,15400,432,6,"wing","twin",32,"none",1988,6,36000,"Turbofan","The largest aircraft ever built. One existed. It was destroyed at Hostomel in 2022."],
+["SR71","SR-71 Blackbird","Lockheed","H",0,16.9,32.7,78,5400,1910,2,"wing","twin",60,"none",1964,2,85000,"Turbojet","It leaked fuel on the ground because the panels only sealed once friction heat expanded them."],
+["TU44","Tu-144","Tupolev","H",0,28.8,65.5,207,6500,1200,4,"wing","delta",57,"none",1968,140,59000,"Turbofan","Beat Concorde into the air by two months and into retirement by twenty-five years."],
+["XB70","XB-70 Valkyrie","North American","H",0,32,57.6,246,6900,1800,6,"wing","delta",65,"none",1964,2,77000,"Turbojet","Two were built. Its wingtips folded down in flight to ride its own shockwave."],
+["COMT","de Havilland Comet","de Havilland","H",0,35,34,73,4200,420,4,"wing","conv",20,"none",1949,109,42000,"Turbojet","The first jet airliner. Square windows cracked at the corners, and the fleet was grounded."],
+["H4","H-4 Hercules","Hughes","J",0,97.5,66.6,180,5600,135,8,"wing","conv",0,"none",1947,750,20900,"Piston","The 'Spruce Goose'. Built of birch, flown once for a single minute, never again."],
+];
+const TYPES={};
+RAW.forEach((r,i)=>{TYPES[r[0]]={dex:i+1,code:r[0],name:r[1],mfr:r[2],wake:r[3],active:r[4],span:r[5],
+  len:r[6],mtow:r[7],range:r[8],cruise:r[9],eng:r[10],mount:r[11],tail:r[12],sweep:r[13],tip:r[14],
+  ff:r[15],pax:r[16],ceil:r[17],engType:r[18],note:r[19]};});
+const TYPE_LIST=Object.values(TYPES);
+const MAX_SPAN=Math.max(...TYPE_LIST.map(t=>t.span));
+const TIERS=[
+  {k:"GHOST",c:"var(--r-ghost)",min:-1,max:0},
+  {k:"LEGENDARY",c:"var(--r-legendary)",min:1,max:30},
+  {k:"EXOTIC",c:"var(--r-exotic)",min:31,max:200},
+  {k:"RARE",c:"var(--r-rare)",min:201,max:800},
+  {k:"UNCOMMON",c:"var(--r-uncommon)",min:801,max:2500},
+  {k:"COMMON",c:"var(--r-common)",min:2501,max:1e9}];
+function tierOf(t){return TIERS.find(x=>t.active>=x.min&&t.active<=x.max)||TIERS[5];}
+const WAKE_NAME={L:"LIGHT",M:"MEDIUM",H:"HEAVY",J:"SUPER"};
+const CLASSES={
+  "Airliner":t=>t.pax>=19&&t.mtow>4&&t.tail!=="rotor"&&t.engType!=="Turboshaft",
+  "Business":t=>t.pax<19&&t.pax>=4&&t.mtow>=3&&t.mtow<60&&(t.engType==="Turbofan"||t.engType==="Turboprop")&&t.mount!=="none"&&t.tail!=="rotor",
+  "Light":t=>t.engType==="Piston"||t.engType==="None",
+  "Rotor":t=>t.tail==="rotor",
+  "Cargo":t=>["BLCF","A3ST","A33X","A225","A124","IL76","AN12","H4","GTI"].includes(t.code),
+  "Military":t=>["C130","C30J","C17","C5M","K35R","KC46","A400","E3TF","E2","P8","P3","C40","F16","F15","F18","EA18","F22","F35","A10","B52","B1","B2","V22","T38","T6","L39","U2","RQ4","MQ9","EUFI","RFAL","GRIP","AN12","AN26","IL62","TU95","XB70","SR71","H4","H60","CH47","AH64","UH1"].includes(t.code)
+};
+
+/* =================== OPERATORS =================== */
+const OPS=[
+["UAL","United Airlines","US"],["AAL","American Airlines","US"],["DAL","Delta Air Lines","US"],
+["SWA","Southwest Airlines","US"],["ASA","Alaska Airlines","US"],["JBU","JetBlue","US"],
+["FFT","Frontier Airlines","US"],["NKS","Spirit Airlines","US"],["SKW","SkyWest","US"],
+["ENY","Envoy Air","US"],["RPA","Republic Airways","US"],["EDV","Endeavor Air","US"],
+["HAL","Hawaiian Airlines","US"],["AAY","Allegiant Air","US"],["SCX","Sun Country","US"],
+["FDX","FedEx Express","US"],["UPS","UPS Airlines","US"],["GTI","Atlas Air","US"],
+["ACA","Air Canada","CA"],["WJA","WestJet","CA"],["POE","Porter Airlines","CA"],
+["AMX","Aeroméxico","MX"],["VOI","Volaris","MX"],["VIV","Viva","MX"],
+["BAW","British Airways","GB"],["VIR","Virgin Atlantic","GB"],["EZY","easyJet","GB"],
+["RYR","Ryanair","IE"],["EIN","Aer Lingus","IE"],["DLH","Lufthansa","DE"],["EWG","Eurowings","DE"],
+["CFG","Condor","DE"],["AFR","Air France","FR"],["TVF","Transavia France","FR"],
+["KLM","KLM","NL"],["IBE","Iberia","ES"],["VLG","Vueling","ES"],["SWR","SWISS","CH"],
+["AUA","Austrian","AT"],["SAS","SAS","SE"],["NAX","Norwegian","NO"],["TAP","TAP Air Portugal","PT"],
+["ITY","ITA Airways","IT"],["BEL","Brussels Airlines","BE"],["LOT","LOT Polish","PL"],
+["CSA","Smartwings","CZ"],["WZZ","Wizz Air","HU"],["AEE","Aegean","GR"],["CTN","Croatia Airlines","HR"],
+["FIN","Finnair","FI"],["ICE","Icelandair","IS"],["THY","Turkish Airlines","TR"],
+["PGT","Pegasus","TR"],["AFL","Aeroflot","RU"],["UAE","Emirates","AE"],["ETD","Etihad","AE"],
+["QTR","Qatar Airways","QA"],["SVA","Saudia","SA"],["KAC","Kuwait Airways","KW"],
+["ELY","El Al","IL"],["MSR","EgyptAir","EG"],["RAM","Royal Air Maroc","MA"],
+["ETH","Ethiopian Airlines","ET"],["KQA","Kenya Airways","KE"],["SAA","South African Airways","ZA"],
+["JAL","Japan Airlines","JP"],["ANA","All Nippon Airways","JP"],["KAL","Korean Air","KR"],
+["AAR","Asiana","KR"],["SIA","Singapore Airlines","SG"],["CPA","Cathay Pacific","HK"],
+["CCA","Air China","CN"],["CES","China Eastern","CN"],["CSN","China Southern","CN"],
+["EVA","EVA Air","TW"],["CAL","China Airlines","TW"],["THA","Thai Airways","TH"],
+["MAS","Malaysia Airlines","MY"],["GIA","Garuda Indonesia","ID"],["PAL","Philippine Airlines","PH"],
+["HVN","Vietnam Airlines","VN"],["AIC","Air India","IN"],["IGO","IndiGo","IN"],
+["PIA","Pakistan International","PK"],["UAL2","—","US"],
+["QFA","Qantas","AU"],["VOZ","Virgin Australia","AU"],["ANZ","Air New Zealand","NZ"],
+["FJI","Fiji Airways","FJ"],["LAN","LATAM","CL"],["ARG","Aerolíneas Argentinas","AR"],
+["AVA","Avianca","CO"],["CMP","Copa Airlines","PA"],["AZU","Azul","BR"],["GLO","GOL","BR"],
+];
+const FLAG=cc=>cc.replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
+const OPERATORS={};
+OPS.filter(o=>o[1]!=="—").forEach(o=>OPERATORS[o[0]]={icao:o[0],name:o[1],cc:o[2],flag:FLAG(o[2])});
+const OPERATOR_LIST=Object.values(OPERATORS);
+
+/* =================== AIRPORTS =================== */
+const AP=[
+["KDEN","DEN","Denver","US",39.86,-104.67],["KLAX","LAX","Los Angeles","US",33.94,-118.41],
+["KJFK","JFK","New York Kennedy","US",40.64,-73.78],["KEWR","EWR","Newark","US",40.69,-74.17],
+["KORD","ORD","Chicago O'Hare","US",41.98,-87.90],["KATL","ATL","Atlanta","US",33.64,-84.43],
+["KDFW","DFW","Dallas/Fort Worth","US",32.90,-97.04],["KSFO","SFO","San Francisco","US",37.62,-122.38],
+["KSEA","SEA","Seattle","US",47.45,-122.31],["KPHX","PHX","Phoenix","US",33.44,-112.01],
+["KLAS","LAS","Las Vegas","US",36.08,-115.15],["KMIA","MIA","Miami","US",25.79,-80.29],
+["KBOS","BOS","Boston","US",42.36,-71.01],["KIAH","IAH","Houston","US",29.99,-95.34],
+["KMSP","MSP","Minneapolis","US",44.88,-93.22],["KSLC","SLC","Salt Lake City","US",40.79,-111.98],
+["KDTW","DTW","Detroit","US",42.21,-83.35],["KCLT","CLT","Charlotte","US",35.21,-80.94],
+["KPHL","PHL","Philadelphia","US",39.87,-75.24],["KSAN","SAN","San Diego","US",32.73,-117.19],
+["KPDX","PDX","Portland","US",45.59,-122.60],["KAUS","AUS","Austin","US",30.19,-97.67],
+["KANC","ANC","Anchorage","US",61.17,-150.00],["PHNL","HNL","Honolulu","US",21.32,-157.92],
+["KMEM","MEM","Memphis","US",35.04,-89.98],["KSDF","SDF","Louisville","US",38.17,-85.74],
+["CYYZ","YYZ","Toronto","CA",43.68,-79.63],["CYVR","YVR","Vancouver","CA",49.19,-123.18],
+["CYUL","YUL","Montréal","CA",45.47,-73.74],["CYYC","YYC","Calgary","CA",51.11,-114.02],
+["MMMX","MEX","Mexico City","MX",19.44,-99.07],["MMUN","CUN","Cancún","MX",21.04,-86.87],
+["MMGL","GDL","Guadalajara","MX",20.52,-103.31],["MGGT","GUA","Guatemala City","GT",14.58,-90.53],
+["MROC","SJO","San José","CR",9.99,-84.20],["MPTO","PTY","Panama City","PA",9.07,-79.38],
+["MUHA","HAV","Havana","CU",22.99,-82.41],["MDSD","SDQ","Santo Domingo","DO",18.43,-69.67],
+["MKJP","KIN","Kingston","JM",17.94,-76.79],["MYNN","NAS","Nassau","BS",25.04,-77.47],
+["TJSJ","SJU","San Juan","PR",18.44,-66.00],["TTPP","POS","Port of Spain","TT",10.60,-61.34],
+["SBGR","GRU","São Paulo","BR",-23.43,-46.47],["SBGL","GIG","Rio de Janeiro","BR",-22.81,-43.25],
+["SCEL","SCL","Santiago","CL",-33.39,-70.79],["SAEZ","EZE","Buenos Aires","AR",-34.82,-58.54],
+["SKBO","BOG","Bogotá","CO",4.70,-74.15],["SPJC","LIM","Lima","PE",-12.02,-77.11],
+["SEQM","UIO","Quito","EC",-0.13,-78.36],["SVMI","CCS","Caracas","VE",10.60,-66.99],
+["SUMU","MVD","Montevideo","UY",-34.84,-56.03],["SLVR","VVI","Santa Cruz","BO",-17.64,-63.14],
+["EGLL","LHR","London Heathrow","GB",51.47,-0.45],["EGKK","LGW","London Gatwick","GB",51.15,-0.19],
+["EGCC","MAN","Manchester","GB",53.35,-2.27],["EGPH","EDI","Edinburgh","GB",55.95,-3.37],
+["EIDW","DUB","Dublin","IE",53.42,-6.27],["EHAM","AMS","Amsterdam","NL",52.31,4.76],
+["EDDF","FRA","Frankfurt","DE",50.03,8.56],["EDDM","MUC","Munich","DE",48.35,11.79],
+["EDDB","BER","Berlin","DE",52.36,13.50],["LFPG","CDG","Paris de Gaulle","FR",49.01,2.55],
+["LFPO","ORY","Paris Orly","FR",48.73,2.36],["LEMD","MAD","Madrid","ES",40.47,-3.56],
+["LEBL","BCN","Barcelona","ES",41.30,2.08],["LPPT","LIS","Lisbon","PT",38.77,-9.13],
+["LIRF","FCO","Rome Fiumicino","IT",41.80,12.24],["LIMC","MXP","Milan Malpensa","IT",45.63,8.72],
+["LSZH","ZRH","Zurich","CH",47.46,8.55],["LOWW","VIE","Vienna","AT",48.11,16.57],
+["EBBR","BRU","Brussels","BE",50.90,4.48],["ELLX","LUX","Luxembourg","LU",49.63,6.21],
+["EKCH","CPH","Copenhagen","DK",55.62,12.66],["ESSA","ARN","Stockholm","SE",59.65,17.92],
+["ENGM","OSL","Oslo","NO",60.19,11.10],["EFHK","HEL","Helsinki","FI",60.32,24.96],
+["BIKF","KEF","Reykjavík Keflavík","IS",63.99,-22.61],["BGSF","SFJ","Kangerlussuaq","GL",67.02,-50.69],
+["EPWA","WAW","Warsaw","PL",52.17,20.97],["LKPR","PRG","Prague","CZ",50.10,14.26],
+["LZIB","BTS","Bratislava","SK",48.17,17.21],["LHBP","BUD","Budapest","HU",47.44,19.26],
+["LROP","OTP","Bucharest","RO",44.57,26.10],["LBSF","SOF","Sofia","BG",42.70,23.41],
+["LYBE","BEG","Belgrade","RS",44.82,20.31],["LDZA","ZAG","Zagreb","HR",45.74,16.07],
+["LJLJ","LJU","Ljubljana","SI",46.22,14.46],["LGAV","ATH","Athens","GR",37.94,23.95],
+["LMML","MLA","Malta","MT",35.86,14.48],["LCLK","LCA","Larnaca","CY",34.88,33.63],
+["EETN","TLL","Tallinn","EE",59.41,24.83],["EVRA","RIX","Riga","LV",56.92,23.97],
+["EYVI","VNO","Vilnius","LT",54.64,25.29],["UKBB","KBP","Kyiv Boryspil","UA",50.34,30.89],
+["UUEE","SVO","Moscow Sheremetyevo","RU",55.97,37.41],["UBBB","GYD","Baku","AZ",40.47,50.05],
+["UGTB","TBS","Tbilisi","GE",41.67,44.95],["UAAA","ALA","Almaty","KZ",43.35,77.04],
+["UTTT","TAS","Tashkent","UZ",41.26,69.28],["ZMUB","ULN","Ulaanbaatar","MN",47.65,106.82],
+["LTFM","IST","Istanbul","TR",41.26,28.74],["OMDB","DXB","Dubai","AE",25.25,55.36],
+["OMAA","AUH","Abu Dhabi","AE",24.43,54.65],["OTHH","DOH","Doha","QA",25.27,51.61],
+["OEJN","JED","Jeddah","SA",21.68,39.16],["OERK","RUH","Riyadh","SA",24.96,46.70],
+["OKKK","KWI","Kuwait City","KW",29.23,47.98],["OOMS","MCT","Muscat","OM",23.59,58.28],
+["OJAI","AMM","Amman","JO",31.72,35.99],["LLBG","TLV","Tel Aviv","IL",32.01,34.89],
+["OBBI","BAH","Bahrain","BH",26.27,50.63],["HECA","CAI","Cairo","EG",30.11,31.41],
+["GMMN","CMN","Casablanca","MA",33.37,-7.59],["DTTA","TUN","Tunis","TN",36.85,10.23],
+["DAAG","ALG","Algiers","DZ",36.69,3.22],["HAAB","ADD","Addis Ababa","ET",8.98,38.80],
+["HKJK","NBO","Nairobi","KE",-1.32,36.93],["HTDA","DAR","Dar es Salaam","TZ",-6.88,39.20],
+["HUEN","EBB","Entebbe","UG",0.04,32.44],["FAOR","JNB","Johannesburg","ZA",-26.14,28.25],
+["FACT","CPT","Cape Town","ZA",-33.97,18.60],["DNMM","LOS","Lagos","NG",6.58,3.32],
+["DGAA","ACC","Accra","GH",5.61,-0.17],["GOBD","DSS","Dakar","SN",14.67,-17.07],
+["DIAP","ABJ","Abidjan","CI",5.26,-3.93],["FNLU","LAD","Luanda","AO",-8.86,13.23],
+["FQMA","MPM","Maputo","MZ",-25.92,32.57],["FYWH","WDH","Windhoek","NA",-22.48,17.47],
+["FVFA","VFA","Victoria Falls","ZW",-18.10,25.84],["FLKK","LUN","Lusaka","ZM",-15.33,28.45],
+["FIMP","MRU","Mauritius","MU",-20.43,57.68],["FSIA","SEZ","Seychelles","SC",-4.67,55.52],
+["RJTT","HND","Tokyo Haneda","JP",35.55,139.78],["RJAA","NRT","Tokyo Narita","JP",35.76,140.39],
+["RJBB","KIX","Osaka Kansai","JP",34.43,135.24],["RKSI","ICN","Seoul Incheon","KR",37.46,126.44],
+["ZBAA","PEK","Beijing Capital","CN",40.08,116.58],["ZSPD","PVG","Shanghai Pudong","CN",31.14,121.80],
+["ZGGG","CAN","Guangzhou","CN",23.39,113.30],["VHHH","HKG","Hong Kong","HK",22.31,113.91],
+["RCTP","TPE","Taipei","TW",25.08,121.23],["WSSS","SIN","Singapore Changi","SG",1.36,103.99],
+["WMKK","KUL","Kuala Lumpur","MY",2.75,101.71],["VTBS","BKK","Bangkok","TH",13.69,100.75],
+["WIII","CGK","Jakarta","ID",-6.13,106.66],["RPLL","MNL","Manila","PH",14.51,121.02],
+["VVTS","SGN","Ho Chi Minh City","VN",10.82,106.66],["VDPP","PNH","Phnom Penh","KH",11.55,104.84],
+["VYYY","RGN","Yangon","MM",16.91,96.13],["VIDP","DEL","Delhi","IN",28.57,77.10],
+["VABB","BOM","Mumbai","IN",19.09,72.87],["VOBL","BLR","Bengaluru","IN",13.20,77.71],
+["OPKC","KHI","Karachi","PK",24.91,67.16],["VGHS","DAC","Dhaka","BD",23.84,90.40],
+["VCBI","CMB","Colombo","LK",7.18,79.88],["VNKT","KTM","Kathmandu","NP",27.70,85.36],
+["VRMM","MLE","Malé","MV",4.19,73.53],["YSSY","SYD","Sydney","AU",-33.94,151.18],
+["YMML","MEL","Melbourne","AU",-37.67,144.84],["YBBN","BNE","Brisbane","AU",-27.38,153.12],
+["YPPH","PER","Perth","AU",-31.94,115.97],["NZAA","AKL","Auckland","NZ",-37.01,174.79],
+["NZCH","CHC","Christchurch","NZ",-43.49,172.53],["NFFN","NAN","Nadi","FJ",-17.75,177.44],
+["NTAA","PPT","Papeete","PF",-17.55,-149.61],["PGUM","GUM","Guam","GU",13.48,144.80],
+];
+const AIRPORTS={};
+AP.forEach(a=>AIRPORTS[a[0]]={icao:a[0],iata:a[1],city:a[2],cc:a[3],flag:FLAG(a[3]),lat:a[4],lon:a[5]});
+const AIRPORT_LIST=Object.values(AIRPORTS);
+
+const CNAME={US:"United States",CA:"Canada",MX:"Mexico",GT:"Guatemala",CR:"Costa Rica",PA:"Panama",
+CU:"Cuba",DO:"Dominican Republic",JM:"Jamaica",BS:"Bahamas",PR:"Puerto Rico",TT:"Trinidad & Tobago",
+BR:"Brazil",CL:"Chile",AR:"Argentina",CO:"Colombia",PE:"Peru",EC:"Ecuador",VE:"Venezuela",
+UY:"Uruguay",BO:"Bolivia",GB:"United Kingdom",IE:"Ireland",NL:"Netherlands",DE:"Germany",
+FR:"France",ES:"Spain",PT:"Portugal",IT:"Italy",CH:"Switzerland",AT:"Austria",BE:"Belgium",
+LU:"Luxembourg",DK:"Denmark",SE:"Sweden",NO:"Norway",FI:"Finland",IS:"Iceland",GL:"Greenland",
+PL:"Poland",CZ:"Czechia",SK:"Slovakia",HU:"Hungary",RO:"Romania",BG:"Bulgaria",RS:"Serbia",
+HR:"Croatia",SI:"Slovenia",GR:"Greece",MT:"Malta",CY:"Cyprus",EE:"Estonia",LV:"Latvia",
+LT:"Lithuania",UA:"Ukraine",RU:"Russia",AZ:"Azerbaijan",GE:"Georgia",KZ:"Kazakhstan",
+UZ:"Uzbekistan",MN:"Mongolia",TR:"Türkiye",AE:"United Arab Emirates",QA:"Qatar",SA:"Saudi Arabia",
+KW:"Kuwait",OM:"Oman",JO:"Jordan",IL:"Israel",BH:"Bahrain",EG:"Egypt",MA:"Morocco",TN:"Tunisia",
+DZ:"Algeria",ET:"Ethiopia",KE:"Kenya",TZ:"Tanzania",UG:"Uganda",ZA:"South Africa",NG:"Nigeria",
+GH:"Ghana",SN:"Senegal",CI:"Côte d'Ivoire",AO:"Angola",MZ:"Mozambique",NA:"Namibia",
+ZW:"Zimbabwe",ZM:"Zambia",MU:"Mauritius",SC:"Seychelles",JP:"Japan",KR:"South Korea",
+CN:"China",HK:"Hong Kong",TW:"Taiwan",SG:"Singapore",MY:"Malaysia",TH:"Thailand",ID:"Indonesia",
+PH:"Philippines",VN:"Vietnam",KH:"Cambodia",MM:"Myanmar",IN:"India",PK:"Pakistan",
+BD:"Bangladesh",LK:"Sri Lanka",NP:"Nepal",MV:"Maldives",AU:"Australia",NZ:"New Zealand",
+FJ:"Fiji",PF:"French Polynesia",GU:"Guam"};
+const COUNTRIES={};
+AIRPORT_LIST.forEach(a=>{if(!COUNTRIES[a.cc])COUNTRIES[a.cc]={cc:a.cc,flag:a.flag,name:CNAME[a.cc]||a.cc};});
+OPERATOR_LIST.forEach(o=>{if(!COUNTRIES[o.cc])COUNTRIES[o.cc]={cc:o.cc,flag:o.flag,name:CNAME[o.cc]||o.cc};});
+const COUNTRY_LIST=Object.values(COUNTRIES).sort((a,b)=>a.name.localeCompare(b.name));
+
+/* what actually fills a sky — spawn weights */
+const FLEET=[["B738",88],["A320",66],["A321",42],["A20N",40],["B38M",36],["A319",28],["B739",26],
+["E75L",30],["CRJ9",17],["CRJ7",15],["CRJ2",10],["E145",11],["B737",17],["BCS3",12],["E190",11],
+["E170",5],["B752",9],["AT72",6],["DH8D",6],["DH8C",3],["B763",7],["B77W",6],["B789",7],["B788",6],
+["A333",5],["A359",5],["A332",4],["B772",4],["B77L",3],["A21N",14],["B78X",3],["A35K",2],["B744",2],
+["A343",1],["A388",1],["B748",1],["MD11",1],["A339",2],["B3XM",2],["BCS1",2],["E295",2],["E290",2],
+["B712",2],["MD82",1],["F100",1],["B190",3],["SF34",2],["AT45",2],["B733",1],["DHC6",3],["SW4",2],
+["C172",42],["C152",9],["C150",7],["C182",15],["PA28",15],["SR22",13],["SR20",4],["C208",9],
+["BE20",9],["B350",5],["DA40",5],["BE58",4],["PA46",5],["C210",3],["C206",4],["M20P",5],["BE36",5],
+["BE35",4],["P28R",5],["PA18",4],["PA34",3],["PA31",3],["RV7",4],["RV10",3],["AA5",2],["DA42",3],
+["PC12",6],["TBM9",3],["C310",2],["GLID",3],["STEA",1],["DC3",1],["C441",1],["C337",1],
+["C56X",8],["C25B",6],["C25A",3],["C25C",3],["C510",3],["GLF5",4],["GLF6",3],["GLF4",3],["CL60",4],
+["CL35",3],["CL30",2],["E55P",5],["E50P",3],["LJ45",3],["LJ35",2],["F2TH",2],["C750",2],["C68A",3],
+["C700",2],["GLEX",2],["GL7T",1],["FA7X",1],["F900",1],["PC24",2],["H25B",2],["G280",1],["HDJT",2],
+["R44",7],["R22",3],["B06",4],["AS50",3],["EC35",3],["EC45",2],["B407",3],["B429",1],["A109",1],
+["A139",2],["H500",2],["S76",1],["H60",2],["UH1",1],["CH47",1],["EC30",1],
+["C130",2],["C30J",1],["K35R",1],["F16",1],["A10",1],["P8",1],["C17",1],["V22",1],["T6",2],["T38",1],
+["L39",1],["E3TF",1],["B52",1],["MQ9",1],["P3",1],["KC46",1],["C40",1],["F35",1],["F15",1],["F18",1],
+["AN26",1],["AN2",1],["B1",1],["U2",1]];
+const FLEET_POOL=[];FLEET.forEach(([c,w])=>{for(let i=0;i<w;i++)FLEET_POOL.push(c);});
+/* ===================================================================
+   SILHOUETTES (memoised — these get drawn hundreds of times)
+   =================================================================== */
+const SIL_CACHE=new Map();
+function silhouette(t,o){
+  o=o||{};
+  const key=t.code+"|"+(o.fill||"#EAF5FF")+"|"+(o.trueScale!==false);
+  const hit=SIL_CACHE.get(key); if(hit)return hit;
+  const out=drawSil(t,o); SIL_CACHE.set(key,out); return out;
+}
+function drawSil(t,o){
+  const fill=o.fill||"#EAF5FF", W=200,H=200,cx=100;
+  const sr=o.trueScale!==false?(0.34+0.66*Math.pow(Math.max(t.span,4)/MAX_SPAN,0.42)):1;
+  const hs=82*sr, ratio=t.span>0?t.len/t.span:1;
+  const bl=Math.min(178,Math.max(70,hs*2*ratio*0.92));
+  const nY=100-bl/2, tY=100+bl/2;
+  const fw=Math.max(3.2,Math.min(13,bl*0.055+t.mtow*0.006));
+  const sw=Math.tan(t.sweep*Math.PI/180);
+  const p=[], props=t.engType==="Turboprop"||t.engType==="Piston";
+
+  if(t.tail==="rotor"){
+    p.push(`<circle cx="${cx}" cy="88" r="${hs*.92}" fill="none" stroke="${fill}" stroke-width="1.1" stroke-dasharray="3 3" opacity=".45"/>`);
+    const bld=t.code==="CH47"?6:(t.mtow>4?4:2);
+    for(let i=0;i<bld;i++){const a=i*Math.PI*2/bld+.35;
+      p.push(`<line x1="${cx}" y1="88" x2="${cx+Math.cos(a)*hs*.9}" y2="${88+Math.sin(a)*hs*.9}" stroke="${fill}" stroke-width="2.5" stroke-linecap="round"/>`);}
+    if(t.code==="CH47"){
+      p.push(`<circle cx="${cx}" cy="${88+bl*.5}" r="${hs*.9}" fill="none" stroke="${fill}" stroke-width="1.1" stroke-dasharray="3 3" opacity=".45"/>`);
+      for(let i=0;i<6;i++){const a=i*Math.PI/3;
+        p.push(`<line x1="${cx}" y1="${88+bl*.5}" x2="${cx+Math.cos(a)*hs*.9}" y2="${88+bl*.5+Math.sin(a)*hs*.9}" stroke="${fill}" stroke-width="2.5" stroke-linecap="round"/>`);}
+      p.push(`<rect x="${cx-fw*1.5}" y="${88-bl*.16}" width="${fw*3}" height="${bl*.72}" rx="${fw}" fill="${fill}"/>`);
+      return wrap(p.join(""),W,H);
+    }
+    p.push(`<ellipse cx="${cx}" cy="88" rx="${fw*1.5}" ry="${bl*.2}" fill="${fill}"/>`);
+    p.push(`<path d="M${cx-fw*.6} ${88+bl*.16} L${cx+fw*.6} ${88+bl*.16} L${cx+fw*.3} ${88+bl*.62} L${cx-fw*.3} ${88+bl*.62} Z" fill="${fill}"/>`);
+    p.push(`<circle cx="${cx}" cy="${88+bl*.62}" r="${hs*.2}" fill="none" stroke="${fill}" stroke-width="1.6"/>`);
+    return wrap(p.join(""),W,H);
+  }
+  if(t.code==="BALL"){
+    p.push(`<circle cx="${cx}" cy="80" r="54" fill="${fill}"/>`);
+    p.push(`<path d="M${cx-17} 128 L${cx-8} 160 L${cx+8} 160 L${cx+17} 128" fill="none" stroke="${fill}" stroke-width="2"/>`);
+    p.push(`<rect x="${cx-12}" y="154" width="24" height="17" rx="2" fill="${fill}"/>`);
+    return wrap(p.join(""),W,H);
+  }
+  if(t.tail==="none"){
+    p.push(`<path d="M${cx} ${nY} L${cx+hs} ${nY+bl*.86} L${cx+hs*.55} ${nY+bl*.7} L${cx+hs*.28} ${tY}
+      L${cx-hs*.28} ${tY} L${cx-hs*.55} ${nY+bl*.7} L${cx-hs} ${nY+bl*.86} Z" fill="${fill}"/>`);
+    return wrap(p.join(""),W,H);
+  }
+  p.push(`<path d="M${cx} ${nY}
+    C${cx+fw*.85} ${nY+bl*.10} ${cx+fw} ${nY+bl*.24} ${cx+fw} ${nY+bl*.42}
+    L${cx+fw} ${tY-bl*.16}
+    C${cx+fw*.9} ${tY-bl*.05} ${cx+fw*.5} ${tY-bl*.01} ${cx+fw*.18} ${tY}
+    L${cx-fw*.18} ${tY}
+    C${cx-fw*.5} ${tY-bl*.01} ${cx-fw*.9} ${tY-bl*.05} ${cx-fw} ${tY-bl*.16}
+    L${cx-fw} ${nY+bl*.42}
+    C${cx-fw} ${nY+bl*.24} ${cx-fw*.85} ${nY+bl*.10} ${cx} ${nY} Z" fill="${fill}"/>`);
+  const wy=nY+bl*.44, tipY=wy+hs*sw+(t.sweep?0:2);
+  const ch=bl*(t.tail==="delta"?.42:.20), tc=ch*(t.sweep>45?.30:.34);
+  if(t.tail==="delta"){
+    p.push(`<path d="M${cx-fw} ${wy-ch*.5} L${cx-hs} ${wy+ch*.9} L${cx-hs*.96} ${wy+ch*1.05}
+      L${cx+hs*.96} ${wy+ch*1.05} L${cx+hs} ${wy+ch*.9} L${cx+fw} ${wy-ch*.5} Z" fill="${fill}"/>`);
+  } else {
+    [-1,1].forEach(s=>{
+      p.push(`<path d="M${cx+s*fw*.85} ${wy-ch*.42} L${cx+s*hs} ${tipY-tc*.35}
+        L${cx+s*hs} ${tipY+tc*.65} L${cx+s*fw*.85} ${wy+ch*.72} Z" fill="${fill}"/>`);
+      if(t.tip==="winglet"||t.tip==="sharklet"||t.tip==="split")
+        p.push(`<rect x="${cx+s*hs-(s>0?0:3.4)}" y="${tipY-tc*.3}" width="3.4" height="${tc*.85}" rx="1.2" fill="${fill}"/>`);
+      if(t.tip==="tank")
+        p.push(`<ellipse cx="${cx+s*hs}" cy="${tipY+tc*.15}" rx="2.6" ry="${tc*.8}" fill="${fill}"/>`);
+    });
+  }
+  const hsz=hs*(t.tail==="tee"?.34:.36), hy=t.tail==="delta"?tY-bl*.05:tY-bl*.10;
+  if(t.tail!=="delta")[-1,1].forEach(s=>p.push(`<path d="M${cx+s*fw*.6} ${hy-bl*.055} L${cx+s*hsz} ${hy+hsz*sw*.85}
+    L${cx+s*hsz} ${hy+hsz*sw*.85+bl*.035} L${cx+s*fw*.6} ${hy+bl*.045} Z" fill="${fill}"/>`));
+  if(t.tail==="vee")[-1,1].forEach(s=>p.push(`<path d="M${cx} ${tY-bl*.14} L${cx+s*hsz*.8} ${tY} L${cx+s*hsz*.8} ${tY-bl*.03} Z" fill="${fill}"/>`));
+  else p.push(`<path d="M${cx-2.2} ${tY-bl*.16} L${cx} ${tY-bl*.02} L${cx+2.2} ${tY-bl*.16} Z" fill="${fill}"/>`);
+  if(t.tail==="twin"||t.tail==="quad")
+    [-1,1].forEach(s=>p.push(`<path d="M${cx+s*hsz*.5-2} ${hy-bl*.02} L${cx+s*hsz*.5} ${hy+bl*.07} L${cx+s*hsz*.5+2} ${hy-bl*.02} Z" fill="${fill}"/>`));
+  if(t.tail==="quad"){
+    [-1,1].forEach(s=>p.push(`<path d="M${cx+s*hsz*.92-2} ${hy-bl*.02} L${cx+s*hsz*.92} ${hy+bl*.06} L${cx+s*hsz*.92+2} ${hy-bl*.02} Z" fill="${fill}"/>`));
+    p.push(`<ellipse cx="${cx}" cy="${nY+bl*.62}" rx="${hs*.42}" ry="${hs*.1}" fill="${fill}"/>`);}
+  if(t.code==="E3TF")p.push(`<ellipse cx="${cx}" cy="${nY+bl*.66}" rx="${hs*.44}" ry="${hs*.11}" fill="${fill}"/>`);
+  const nl=bl*.13, nw=Math.max(2.6,fw*.52);
+  if(t.mount==="wing"&&t.eng>0){
+    const pairs=Math.max(1,Math.round(t.eng/2));
+    for(let i=0;i<pairs;i++){
+      const f=pairs===1?.36:(pairs===2?.26+i*.26:.22+i*.2);
+      const ex=hs*f, ey=wy+ex*sw+ch*.15;
+      [-1,1].forEach(s=>{
+        if(props){
+          p.push(`<rect x="${cx+s*ex-nw*.8}" y="${ey-nl*1.5}" width="${nw*1.6}" height="${nl*2}" rx="${nw*.7}" fill="${fill}"/>`);
+          p.push(`<circle cx="${cx+s*ex}" cy="${ey-nl*1.6}" r="${hs*.18}" fill="none" stroke="${fill}" stroke-width="1.1" stroke-dasharray="2.5 2.5" opacity=".55"/>`);
+        } else p.push(`<rect x="${cx+s*ex-nw}" y="${ey-nl*.8}" width="${nw*2}" height="${nl*2.1}" rx="${nw}" fill="${fill}"/>`);});}
+  } else if(t.mount==="rear"&&t.eng>0){
+    const ey=tY-bl*.26;
+    [-1,1].forEach(s=>p.push(`<rect x="${cx+s*(fw+nw*.85)-nw}" y="${ey-nl}" width="${nw*2}" height="${nl*2.2}" rx="${nw}" fill="${fill}"/>`));
+  } else if(t.mount==="tri"){
+    const ey=wy+hs*.36*sw+ch*.15;
+    [-1,1].forEach(s=>p.push(`<rect x="${cx+s*hs*.36-nw}" y="${ey-nl*.8}" width="${nw*2}" height="${nl*2.1}" rx="${nw}" fill="${fill}"/>`));
+    p.push(`<rect x="${cx-nw*.9}" y="${tY-bl*.20}" width="${nw*1.8}" height="${nl*1.7}" rx="${nw*.9}" fill="${fill}"/>`);
+  } else if(t.mount==="nose"){
+    p.push(`<circle cx="${cx}" cy="${nY+2}" r="${hs*.32}" fill="none" stroke="${fill}" stroke-width="1.3" stroke-dasharray="3 3" opacity=".6"/>`);
+    p.push(`<rect x="${cx-1.7}" y="${nY-3}" width="3.4" height="9" rx="1.7" fill="${fill}"/>`);
+  }
+  return wrap(p.join(""),W,H);
+}
+function wrap(i,w,h){return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${i}</svg>`;}
+
+/* =================== STORAGE =================== */
+const KEY="planehunter:save:v3";
+let SAVE={types:{},operators:{},airports:{},countries:{},log:[],catches:0};
+async function load(){try{const r=await window.storage.get(KEY);if(r&&r.value)SAVE=Object.assign(SAVE,JSON.parse(r.value));}catch(e){}}
+let sT=null;
+function save(){clearTimeout(sT);sT=setTimeout(async()=>{try{await window.storage.set(KEY,JSON.stringify(SAVE));}catch(e){}},500);}
+
+const state={lat:39.7392,lon:-104.9903,label:"Denver, CO",rangeNm:40,live:false,proxy:"",
+  traffic:[],dexTab:"types",filter:"ALL",
+  hasCompass:false,alpha:0,beta:90,gamma:0,screenAngle:0,
+  viewYaw:0,viewPitch:20,camOn:false,huntOn:false,trackId:null,
+  lockId:null,lockMs:0,lastFrame:0};
+
+/* =================== GEOMETRY =================== */
+const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI, NM=1.852;
+function distKm(a,b,c,d){const p=toRad(c-a),q=toRad(d-b);
+  const x=Math.sin(p/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(q/2)**2;
+  return 12742*Math.asin(Math.sqrt(Math.min(1,x)));}
+function bearing(a,b,c,d){const y=Math.sin(toRad(d-b))*Math.cos(toRad(c));
+  const x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(toRad(d-b));
+  return (toDeg(Math.atan2(y,x))+360)%360;}
+function elevation(groundKm,ft){
+  const h=ft*0.0003048;
+  if(groundKm<0.01)return 90;
+  // account for Earth curvature over long slant ranges
+  return toDeg(Math.atan2(h-groundKm*groundKm/12742,groundKm));}
+
+/* World frame: X east, Y north, Z up. */
+function dirOf(brgDeg,elevDeg){
+  const b=toRad(brgDeg), e=toRad(elevDeg), ce=Math.cos(e);
+  return [Math.sin(b)*ce, Math.cos(b)*ce, Math.sin(e)];}
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+
+/* Camera basis from device orientation.
+   R = Rz(alpha)·Rx(beta)·Ry(gamma) maps device vectors into the world.
+   The rear camera looks along device −Z; screen right is +X, screen up is +Y.
+   Screen rotation only rolls the image, so it is applied last. */
+function cameraBasis(){
+  if(!state.hasCompass){
+    const y=toRad(state.viewYaw), p=toRad(state.viewPitch);
+    const f=[Math.sin(y)*Math.cos(p),Math.cos(y)*Math.cos(p),Math.sin(p)];
+    const r=[Math.cos(y),-Math.sin(y),0];
+    const u=[r[1]*f[2]-r[2]*f[1], r[2]*f[0]-r[0]*f[2], r[0]*f[1]-r[1]*f[0]];
+    return {f,r,u};
+  }
+  const a=toRad(state.alpha), b=toRad(state.beta), g=toRad(state.gamma);
+  const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
+  let r=[ca*cg-sa*sb*sg, sa*cg+ca*sb*sg, -cb*sg];
+  let u=[-sa*cb, ca*cb, sb];
+  const f=[-(ca*sg+sa*sb*cg), -(sa*sg-ca*sb*cg), -(cb*cg)];
+  const th=toRad(state.screenAngle);
+  if(th){const ct=Math.cos(th),st=Math.sin(th);
+    const r2=[r[0]*ct+u[0]*st, r[1]*ct+u[1]*st, r[2]*ct+u[2]*st];
+    const u2=[-r[0]*st+u[0]*ct, -r[1]*st+u[1]*ct, -r[2]*st+u[2]*ct];
+    r=r2;u=u2;}
+  return {f,r,u};
+}
+function lookAngles(){
+  const {f}=cameraBasis();
+  return {hdg:(toDeg(Math.atan2(f[0],f[1]))+360)%360, elev:toDeg(Math.asin(Math.max(-1,Math.min(1,f[2]))))};
+}
+
+/* =================== SUN → SKY =================== */
+function sunAltitude(lat,lon,date){
+  const n=date.getTime()/86400000+2440587.5-2451545.0;
+  const rad=Math.PI/180;
+  const L=(280.460+0.9856474*n)%360;
+  const g=((357.528+0.9856003*n)%360)*rad;
+  const lam=(L+1.915*Math.sin(g)+0.020*Math.sin(2*g))*rad;
+  const eps=(23.439-0.0000004*n)*rad;
+  const ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
+  const dec=Math.asin(Math.sin(eps)*Math.sin(lam));
+  let gmst=(18.697374558+24.06570982441908*n)%24; if(gmst<0)gmst+=24;
+  const H=(gmst*15+lon)*rad-ra;
+  return Math.asin(Math.sin(lat*rad)*Math.sin(dec)+Math.cos(lat*rad)*Math.cos(dec)*Math.cos(H))/rad;
+}
+const SKY_STOPS=[
+  [ 60,"#1E74AE","#3E9BCC","#7BC3E2","#A9DDF0",0.00],
+  [ 25,"#1A639B","#3689BC","#68B0D4","#96CFE8",0.00],
+  [  8,"#1B5480","#4A7CA0","#B98A62","#E8B07A",0.00],
+  [  1,"#173F63","#4E5F82","#D6784E","#FFA96B",0.06],
+  [ -4,"#102A47","#37406A","#A8474A","#D9663F",0.24],
+  [ -8,"#0B1D35","#1E2A50","#4A3B66","#6E4A72",0.55],
+  [-14,"#070F22","#0F1730","#1D2245","#2E2F55",0.88],
+  [-20,"#03070F","#060B18","#0B1224","#121A30",1.00]];
+const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const mix=(a,b,t)=>{const A=hx(a),B=hx(b);
+  return "#"+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,"0")).join("");};
+function skyPhase(alt){
+  if(alt>10)return "DAYLIGHT";
+  if(alt>0)return alt>4?"LOW SUN":"GOLDEN HOUR";
+  if(alt>-0.833)return "SUNSET";
+  if(alt>-6)return "CIVIL TWILIGHT";
+  if(alt>-12)return "NAUTICAL TWILIGHT";
+  if(alt>-18)return "ASTRONOMICAL TWILIGHT";
+  return "NIGHT";
+}
+let lastSkyAlt=null;
+function applySky(force){
+  const alt=sunAltitude(state.lat,state.lon,new Date());
+  if(!force&&lastSkyAlt!==null&&Math.abs(alt-lastSkyAlt)<0.15)return;
+  lastSkyAlt=alt;
+  let i=0; while(i<SKY_STOPS.length-1&&alt<SKY_STOPS[i+1][0])i++;
+  let A=SKY_STOPS[i],B=SKY_STOPS[Math.min(i+1,SKY_STOPS.length-1)],t=0;
+  if(A!==B)t=Math.max(0,Math.min(1,(A[0]-alt)/(A[0]-B[0])));
+  const s=document.documentElement.style;
+  s.setProperty("--sky-top",mix(A[1],B[1],t));
+  s.setProperty("--sky-mid",mix(A[2],B[2],t));
+  s.setProperty("--sky-horizon",mix(A[3],B[3],t));
+  s.setProperty("--sky-glow",mix(A[4],B[4],t));
+  s.setProperty("--star",(A[5]+(B[5]-A[5])*t).toFixed(2));
+  const m=document.querySelector('meta[name=theme-color]');
+  if(m)m.setAttribute("content",mix(A[1],B[1],t));
+  document.getElementById("skyLabel").textContent=
+    skyPhase(alt)+" · SUN "+(alt>=0?"+":"")+alt.toFixed(0)+"°";
+}
+
+/* =================== SKY TRAFFIC =================== */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const L26="ABCDEFGHJKLMNPQRSTUVWXYZ".split("");
+const PRE={CA:"C-F",GB:"G-",IE:"EI-",DE:"D-A",FR:"F-G",NL:"PH-",ES:"EC-",PT:"CS-",IT:"EI-",CH:"HB-",
+AT:"OE-",BE:"OO-",SE:"SE-",NO:"LN-",DK:"OY-",FI:"OH-",IS:"TF-",PL:"SP-",CZ:"OK-",HU:"HA-",GR:"SX-",
+HR:"9A-",TR:"TC-",RU:"RA-",AE:"A6-",QA:"A7-",SA:"HZ-",KW:"9K-",IL:"4X-",EG:"SU-",MA:"CN-",ET:"ET-",
+KE:"5Y-",ZA:"ZS-",NG:"5N-",JP:"JA",KR:"HL",CN:"B-",HK:"B-H",TW:"B-",SG:"9V-",MY:"9M-",TH:"HS-",
+ID:"PK-",PH:"RP-C",VN:"VN-",IN:"VT-",PK:"AP-",AU:"VH-",NZ:"ZK-",FJ:"DQ-",BR:"PR-",CL:"CC-",
+AR:"LV-",CO:"HK-",PA:"HP-",MX:"XA-"};
+const MILCALL=["REACH","RCH","DOOM","SLAM","GRIM","VADER","BONE","SNAKE","TOPCAT","HOSER","JEDI","RAIDR"];
+const MILSET=new Set(["C130","C30J","C17","C5M","K35R","KC46","A400","E3TF","E2","P8","P3","C40","F16",
+"F15","F18","EA18","F22","F35","A10","B52","B1","B2","V22","T38","T6","U2","RQ4","MQ9","H60","CH47",
+"AH64","UH1","EUFI","RFAL","GRIP","TU95","AN12","AN26"]);
+function regFor(op,mil){
+  if(mil)return String(60+Math.floor(Math.random()*40))+"-"+(1000+Math.floor(Math.random()*8999));
+  if(!op||op.cc==="US")return "N"+(100+Math.floor(Math.random()*899))+pick(L26)+pick(L26);
+  return (PRE[op.cc]||"N")+pick(L26)+pick(L26)+pick(L26);}
+function makeFlight(){
+  const code=pick(FLEET_POOL), t=TYPES[code], mil=MILSET.has(code);
+  const airliner=t.pax>=19&&t.mtow>10&&t.tail!=="rotor"&&!mil;
+  const op=airliner&&Math.random()<.87?pick(OPERATOR_LIST):null;
+  const b=Math.random()*360, r=(2+Math.random()*(state.rangeNm-4))*NM;
+  const lat=state.lat+(r/111)*Math.cos(toRad(b));
+  const lon=state.lon+(r/(111*Math.cos(toRad(state.lat))))*Math.sin(toRad(b));
+  let alt,gs;
+  if(t.tail==="rotor"){alt=500+Math.random()*3200;gs=t.cruise*(.55+Math.random()*.35);}
+  else if(t.engType==="Piston"||t.engType==="None"){alt=1800+Math.random()*8500;gs=t.cruise*(.7+Math.random()*.35);}
+  else if(airliner&&Math.random()<.6){alt=29000+Math.random()*13000;gs=t.cruise*(.88+Math.random()*.22);}
+  else{alt=4000+Math.random()*22000;gs=t.cruise*(.55+Math.random()*.4);}
+  alt=Math.min(alt,t.ceil);
+  let origin=null,dest=null;
+  if(op){const home=AIRPORT_LIST.filter(a=>a.cc===op.cc);
+    origin=Math.random()<.55&&home.length?pick(home):pick(AIRPORT_LIST);
+    let g=0;do{dest=pick(AIRPORT_LIST);g++;}while(dest.icao===origin.icao&&g<8);}
+  return {id:Math.random().toString(36).slice(2,10),hex:Math.random().toString(16).slice(2,8),
+    code,type:t,op,mil,
+    call:mil?pick(MILCALL)+(10+Math.floor(Math.random()*89)):(op?op.icao+(1+Math.floor(Math.random()*3999)):regFor(null,false)),
+    reg:regFor(op,mil),lat,lon,alt:Math.round(alt/25)*25,gs:Math.round(gs),
+    track:Math.round(Math.random()*360),blocked:!mil&&Math.random()<.026,origin,dest,seen:Date.now()};
+}
+let lastSim=0;
+function simTick(){
+  const now=Date.now(), dt=Math.min(4,(now-(lastSim||now))/1000); lastSim=now;
+  state.traffic.forEach(f=>{const km=f.gs*1.852/3600*dt;
+    f.lat+=(km/111)*Math.cos(toRad(f.track));
+    f.lon+=(km/(111*Math.cos(toRad(f.lat))))*Math.sin(toRad(f.track));});
+  state.traffic=state.traffic.filter(f=>distKm(state.lat,state.lon,f.lat,f.lon)/NM<state.rangeNm*1.08);
+  const target=9+Math.round(Math.random()*6);
+  while(state.traffic.length<target)state.traffic.push(makeFlight());
+}
+function feedUrl(){
+  const la=state.lat.toFixed(4), lo=state.lon.toFixed(4), r=Math.round(state.rangeNm);
+  if(state.proxy)return `${state.proxy.replace(/\/$/,"")}/point/${la}/${lo}/${r}`;
+  // when hosted, api/planes.js proxies and caches airplanes.live for us
+  if(location.protocol==="http:"||location.protocol==="https:")
+    return `/api/planes?lat=${la}&lon=${lo}&radius=${r}`;
+  return `https://api.airplanes.live/v2/point/${la}/${lo}/${r}`;
+}
+async function fetchLive(){
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),8000);
+  let res; try{res=await fetch(feedUrl(),{signal:ctl.signal});}
+  finally{clearTimeout(to);}
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  const j=await res.json();
+  return (j.ac||j.aircraft||[]).filter(a=>a.lat&&a.lon).map(a=>{
+    const code=(a.t||"").toUpperCase();
+    const t=TYPES[code]||{dex:0,code:code||"????",name:a.desc||"Unidentified type",mfr:"Unknown",wake:"M",
+      active:500,span:30,len:30,mtow:50,range:0,cruise:400,eng:2,mount:"wing",tail:"conv",sweep:25,
+      tip:"none",ff:0,pax:0,ceil:45000,engType:"Turbofan",note:"Not in the reference library yet."};
+    const cs=(a.flight||"").trim();
+    return {id:a.hex,hex:a.hex,code:t.code,type:t,op:OPERATORS[cs.slice(0,3).toUpperCase()]||null,
+      mil:a.dbFlags===1,call:cs||a.r||String(a.hex).toUpperCase(),reg:a.r||"—",lat:a.lat,lon:a.lon,
+      alt:typeof a.alt_baro==="number"?a.alt_baro:(a.alt_geom||0),gs:Math.round(a.gs||0),
+      track:Math.round(a.track||0),blocked:false,origin:null,dest:null,live:true,seen:Date.now()};});
+}
+let loop=null, NEAR=[], nearStamp=0;
+function nearby(){
+  const now=performance.now();
+  if(now-nearStamp<180)return NEAR;
+  nearStamp=now;
+  NEAR=state.traffic.map(f=>{const g=distKm(state.lat,state.lon,f.lat,f.lon);
+    f.distNm=g/NM; f.brg=bearing(state.lat,state.lon,f.lat,f.lon); f.elev=elevation(g,f.alt);
+    f.overHorizon=f.elev<0; return f;})
+    .filter(f=>f.distNm<=state.rangeNm).sort((a,b)=>a.distNm-b.distNm);
+  return NEAR;
+}
+async function tick(){
+  if(state.live){
+    try{state.traffic=await fetchLive();setPill(true,"LIVE");}
+    catch(e){state.live=false;setPill(false,"SIM");toast("Live feed unreachable — simulated sky");startLoop();return;}
+  } else simTick();
+  nearStamp=0;
+  if(!state.huntOn){renderScope();renderList();}
+  applySky(false);
+}
+function startLoop(){clearInterval(loop);tick();loop=setInterval(tick,state.live?6000:1200);}
+function setPill(on,txt){const p=document.getElementById("pill");p.classList.toggle("on",on);
+  document.getElementById("pilltxt").textContent=txt;}
+
+/* =================== SCOPE =================== */
+const TIERHEX={GHOST:"#DCEBFA",LEGENDARY:"#FF5D73",EXOTIC:"#FF6BC1",RARE:"#FFC857",UNCOMMON:"#6FD8FF",COMMON:"#8AA6BC"};
+const cssTier=t=>TIERHEX[tierOf(t).k];
+function renderScope(){
+  const list=nearby(), svg=document.getElementById("scopeSvg"), C=200,R=176;
+  let s="";
+  [.25,.5,.75,1].forEach(f=>{
+    s+=`<circle cx="${C}" cy="${C}" r="${(R*f).toFixed(1)}" fill="none" stroke="rgba(160,208,240,.18)" stroke-width="1"${f<1?' stroke-dasharray="2 6"':''}/>`;
+    if(f<1)s+=`<text class="rt" x="${C+4}" y="${(C-R*f+11).toFixed(0)}">${Math.round(state.rangeNm*f)}</text>`;});
+  s+=`<line x1="${C}" y1="${C-R}" x2="${C}" y2="${C+R}" stroke="rgba(160,208,240,.13)"/>
+      <line x1="${C-R}" y1="${C}" x2="${C+R}" y2="${C}" stroke="rgba(160,208,240,.13)"/>`;
+  [["N",0],["E",90],["S",180],["W",270]].forEach(([l,d])=>{const a=toRad(d-90);
+    s+=`<text class="cd" x="${(C+Math.cos(a)*(R+16)).toFixed(0)}" y="${(C+Math.sin(a)*(R+16)+5).toFixed(0)}" text-anchor="middle">${l}</text>`;});
+  s+=`<circle cx="${C}" cy="${C}" r="5" fill="none" stroke="#6FD8FF" stroke-width="1.6"/><circle cx="${C}" cy="${C}" r="1.8" fill="#6FD8FF"/>`;
+  list.forEach(f=>{
+    const a=toRad(f.brg-90), r=R*(f.distNm/state.rangeNm);
+    const x=(C+Math.cos(a)*r).toFixed(1), y=(C+Math.sin(a)*r).toFixed(1);
+    const got=!!SAVE.types[f.code], col=got?"#8AA6BC":cssTier(f.type);
+    s+=`<g class="blip" data-id="${f.id}" style="cursor:pointer">
+      <circle cx="${x}" cy="${y}" r="18" fill="transparent"/>
+      <g transform="translate(${x},${y}) rotate(${f.track})"><path d="M0,-7.5 L4.7,6.4 L0,3.6 L-4.7,6.4 Z" fill="${col}"/></g>
+      ${!got?`<circle cx="${x}" cy="${y}" r="13.5" fill="none" stroke="${col}" stroke-width="1" opacity=".5"/>`:""}
+      <text x="${x}" y="${y}" dx="12" dy="-9" font-family="Azeret Mono,monospace" font-size="7.5" fill="${col}" opacity="${got?.6:1}">${esc(f.code)}</text></g>`;});
+  svg.innerHTML=s;
+  svg.querySelectorAll(".blip").forEach(g=>g.addEventListener("click",()=>trackTarget(g.dataset.id)));
+  document.getElementById("mCount").textContent=list.length;
+  document.getElementById("mRange").textContent=state.rangeNm;
+  document.getElementById("mPos").textContent=`${state.lat.toFixed(3)} / ${state.lon.toFixed(3)} · ${state.label.toUpperCase()}`;
+}
+function renderList(){
+  const host=document.getElementById("listHost"), list=nearby().slice(0,16);
+  if(!list.length){host.innerHTML=`<div class="empty"><h3>EMPTY SKY</h3>
+    <p>Nothing in range. Widen the scope in settings, or jump to a busier airport.</p></div>`;return;}
+  host.innerHTML=list.map(f=>{
+    const got=SAVE.types[f.code], col=cssTier(f.type);
+    const who=f.blocked?"REGISTRATION BLOCKED":(f.op?f.op.name:(f.mil?"Military / state":"Private"));
+    const route=f.origin&&f.dest?` · ${f.origin.iata} → ${f.dest.iata}`:"";
+    return `<div class="ct ${got?"got":""}" data-id="${f.id}">
+      <div class="edge" style="background:${col}"></div>
+      <div class="core"><div class="l1">
+        <span class="call">${esc(f.call)}</span><span class="typ">${esc(f.code)}</span>
+        ${!got&&f.type.active!==0?`<span class="tag" style="background:${col}">NEW</span>`:""}
+        ${got?`<span class="tag" style="background:rgba(160,208,240,.16);color:var(--ink-2)">×${got.count}</span>`:""}</div>
+      <div class="l2">${Math.round(f.alt).toLocaleString()} FT · ${f.gs} KT · ${f.distNm.toFixed(1)} NM · ${String(Math.round(f.brg)).padStart(3,"0")}° · ${f.overHorizon?"BELOW HORIZON":Math.round(f.elev)+"° UP"}</div>
+      <div class="l3">${esc(f.type.name)} · ${esc(who)}${route}</div></div>
+      <button class="act" data-c="${f.id}">${f.overHorizon?"TOO<br>FAR":"TRACK<br>IT"}</button></div>`;}).join("");
+  host.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();trackTarget(b.dataset.c);}));
+  host.querySelectorAll(".ct").forEach(c=>c.addEventListener("click",()=>trackTarget(c.dataset.id)));
+}
+function trackTarget(id){
+  state.trackId=id;
+  document.querySelector('nav button[data-view="hunt"]').click();
+}
+
+/* =================== HUNT =================== */
+const LOCK_MS=2000, LOCK_DEG=7;
+const mkNodes=new Map();
+let huntRaf=null;
+function fovs(){
+  const W=innerWidth,H=innerHeight;
+  const long=Math.max(W,H), short=Math.min(W,H);
+  const fLong=64*Math.PI/180;
+  const fShort=2*Math.atan(Math.tan(fLong/2)*short/long);
+  return W>=H?{h:fLong,v:fShort,W,H}:{h:fShort,v:fLong,W,H};
+}
+async function startCamera(){
+  const v=document.getElementById("cam"), msg=document.getElementById("hMsg");
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    msg.textContent="NO CAMERA AVAILABLE — PAINTED SKY INSTEAD";return;}
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},
+      width:{ideal:1280},height:{ideal:720}},audio:false});
+    v.srcObject=st;v.style.display="block";state.camOn=true;
+    document.getElementById("fakesky").style.display="none";
+  }catch(e){msg.textContent="CAMERA BLOCKED — HOST OVER HTTPS TO ENABLE";}
+}
+function stopCamera(){
+  const v=document.getElementById("cam");
+  if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}
+  v.style.display="none";state.camOn=false;
+  document.getElementById("fakesky").style.display="";
+}
+function huntFrame(ts){
+  if(!state.huntOn){huntRaf=null;return;}
+  const dt=state.lastFrame?Math.min(100,ts-state.lastFrame):16; state.lastFrame=ts;
+  const {f,r,u}=cameraBasis(), {h:fh,v:fv,W,H}=fovs();
+  const th=Math.tan(fh/2), tv=Math.tan(fv/2);
+  const list=nearby();
+  const host=document.getElementById("mkHost");
+  const alive=new Set();
+  let best=null,bestAng=1e9;
+
+  for(const a of list){
+    if(a.overHorizon)continue; // genuinely behind the curve of the Earth — not visible
+    const d=dirOf(a.brg,a.elev);
+    const z=dot(d,f); if(z<=0.08)continue;
+    const x=dot(d,r)/z, y=dot(d,u)/z;
+    const px=W/2+(x/th)*(W/2), py=H/2-(y/tv)*(H/2);
+    if(px<-90||px>W+90||py<-90||py>H+90)continue;
+    const ang=toDeg(Math.acos(Math.max(-1,Math.min(1,z))));
+    if(ang<bestAng){bestAng=ang;best=a;}
+    alive.add(a.id);
+    let n=mkNodes.get(a.id);
+    if(!n){
+      n=document.createElement("div"); n.className="mk";
+      n.innerHTML=`<div class="glyph"></div><div class="box"><b></b> <span></span></div>`;
+      host.appendChild(n); mkNodes.set(a.id,n);
+      n._code=""; n._sz=0;
+    }
+    const got=SAVE.types[a.code];
+    const col=got?"#8AA6BC":cssTier(a.type);
+    const sz=Math.round(Math.max(20,Math.min(56,58-a.distNm*0.7)));
+    if(n._code!==a.code+col||n._sz!==sz){
+      const g=n.firstChild;
+      g.style.width=sz+"px"; g.style.height=sz+"px";
+      g.innerHTML=silhouette(a.type,{fill:col,trueScale:false});
+      n._code=a.code+col; n._sz=sz;
+    }
+    n.firstChild.style.transform=`rotate(${(a.track-lookAngles().hdg).toFixed(0)}deg)`;
+    const bx=n.lastChild;
+    bx.firstChild.textContent=a.code;
+    bx.lastChild.textContent=`${a.distNm.toFixed(0)}NM ${got?"×"+got.count:"NEW"}`;
+    n.style.transform=`translate3d(${(px-40).toFixed(1)}px,${(py-sz/2).toFixed(1)}px,0)`;
+    n.style.width="80px";
+    n.classList.toggle("lockon",best===a&&bestAng<LOCK_DEG);
+  }
+  for(const [id,n] of mkNodes){if(!alive.has(id)){n.remove();mkNodes.delete(id);}}
+
+  // lock-on: hold the target inside the reticle for two seconds
+  const inRet=best&&bestAng<LOCK_DEG?best:null;
+  const msg=document.getElementById("hMsg"), ring=document.getElementById("lockRing");
+  if(inRet){
+    if(state.lockId!==inRet.id){state.lockId=inRet.id;state.lockMs=0;}
+    state.lockMs+=dt;
+    const p=Math.min(1,state.lockMs/LOCK_MS);
+    ring.setAttribute("stroke-dashoffset",(289*(1-p)).toFixed(1));
+    ring.setAttribute("stroke",SAVE.types[inRet.code]?"#8AA6BC":cssTier(inRet.type));
+    msg.className="hmsg hot";
+    msg.textContent=`TRACKING ${inRet.call} · HOLD ${((LOCK_MS-state.lockMs)/1000).toFixed(1)}s`;
+    if(state.lockMs>=LOCK_MS){
+      state.lockMs=0;state.lockId=null;ring.setAttribute("stroke-dashoffset","289");
+      doCatch(inRet); return;
+    }
+  } else {
+    state.lockId=null;
+    state.lockMs=Math.max(0,state.lockMs-dt*1.8);
+    ring.setAttribute("stroke-dashoffset",(289*(1-state.lockMs/LOCK_MS)).toFixed(1));
+    msg.className="hmsg";
+    msg.textContent=state.hasCompass?"AIM THE CROSSHAIR AT A PLANE AND HOLD IT":"DRAG TO LOOK AROUND · CENTRE A PLANE AND HOLD";
+  }
+  drawCompass();
+  drawGuide(list);
+  huntRaf=requestAnimationFrame(huntFrame);
+}
+function drawCompass(){
+  const {hdg,elev}=lookAngles();
+  const {h:fh}=fovs(), halfDeg=toDeg(fh/2);
+  let s="";
+  const step=5, span=Math.ceil(halfDeg/step)*step;
+  for(let d=-span;d<=span;d+=step){
+    const b=(hdg+d+3600)%360, x=300+(d/halfDeg)*300;
+    if(x<0||x>600)continue;
+    const maj=Math.abs(b%30)<2.5||Math.abs(b%30-30)<2.5;
+    s+=`<line x1="${x.toFixed(1)}" y1="${maj?5:11}" x2="${x.toFixed(1)}" y2="19" stroke="rgba(180,220,255,${maj?.75:.35})" stroke-width="1"/>`;
+    if(maj)s+=`<text x="${x.toFixed(1)}" y="27" text-anchor="middle" font-family="Azeret Mono,monospace" font-size="9" fill="#9BBBD4">${String(Math.round(b/30)*30%360).padStart(3,"0")}</text>`;
+  }
+  s+=`<path d="M300 0 l5 7 h-10 z" fill="#6FD8FF"/>`;
+  document.getElementById("compSvg").innerHTML=s;
+  document.getElementById("hudTop").innerHTML=
+    `<div class="hmsg" style="padding:6px 12px">HDG ${String(Math.round(hdg)).padStart(3,"0")}° · LOOK ${elev>=0?"+":""}${Math.round(elev)}° · ${NEAR.length} IN RANGE</div>`;
+}
+let guideEl=null;
+function drawGuide(list){
+  const layer=document.getElementById("huntLayer");
+  if(!guideEl){guideEl=document.createElement("div");guideEl.className="guide";layer.appendChild(guideEl);}
+  let t=state.trackId?list.find(a=>a.id===state.trackId&&!a.overHorizon):null;
+  if(!t)t=list.find(a=>!SAVE.types[a.code]&&!a.overHorizon)||list.find(a=>!a.overHorizon);
+  if(!t){guideEl.style.display="none";return;}
+  const {hdg,elev}=lookAngles();
+  let dx=((t.brg-hdg+540)%360)-180, dy=t.elev-elev;
+  const {h:fh,v:fv}=fovs();
+  if(Math.abs(dx)<toDeg(fh/2)&&Math.abs(dy)<toDeg(fv/2)){guideEl.style.display="none";return;}
+  guideEl.style.display="flex";
+  const horiz=Math.abs(dx)>Math.abs(dy);
+  if(horiz){
+    guideEl.style.left=dx>0?"auto":"10px"; guideEl.style.right=dx>0?"10px":"auto";
+    guideEl.style.top="50%";
+    guideEl.textContent=`${dx>0?"▶":"◀"} ${t.code} ${Math.abs(Math.round(dx))}°`;
+  } else {
+    guideEl.style.left="50%"; guideEl.style.right="auto";
+    guideEl.style.top=dy>0?"22%":"74%";
+    guideEl.textContent=`${dy>0?"▲":"▼"} ${t.code} ${Math.abs(Math.round(dy))}° ${dy>0?"UP":"DOWN"}`;
+  }
+}
+function bindHuntDrag(){
+  const el=document.getElementById("huntLayer");
+  let sx=0,sy=0,y0=0,p0=0,on=false;
+  const start=(x,y)=>{on=true;sx=x;sy=y;y0=state.viewYaw;p0=state.viewPitch;};
+  const move=(x,y)=>{if(!on||state.hasCompass)return;
+    const {h:fh,v:fv,W,H}=fovs();
+    state.viewYaw=(y0-(x-sx)/W*toDeg(fh)*1.5+3600)%360;
+    state.viewPitch=Math.max(-15,Math.min(89,p0+(y-sy)/H*toDeg(fv)*1.5));};
+  el.addEventListener("touchstart",e=>start(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  el.addEventListener("touchmove",e=>move(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  el.addEventListener("touchend",()=>{on=false;},{passive:true});
+  el.addEventListener("mousedown",e=>start(e.clientX,e.clientY));
+  addEventListener("mousemove",e=>move(e.clientX,e.clientY));
+  addEventListener("mouseup",()=>{on=false;});
+}
+function readScreenAngle(){
+  state.screenAngle=(screen.orientation&&typeof screen.orientation.angle==="number")
+    ? screen.orientation.angle : (window.orientation||0);
+}
+async function enableCompass(){
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined"&&DeviceOrientationEvent.requestPermission){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=="granted")return false;
+    }
+    const handler=e=>{
+      if(e.alpha===null&&e.beta===null)return;
+      // webkitCompassHeading is true north; alpha alone is not on iOS
+      if(typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading))
+        state.alpha=(360-e.webkitCompassHeading)%360;
+      else if(e.alpha!==null)state.alpha=e.alpha;
+      if(e.beta!==null)state.beta=e.beta;
+      if(e.gamma!==null)state.gamma=e.gamma;
+      state.hasCompass=true;
+    };
+    if("ondeviceorientationabsolute" in window)
+      window.addEventListener("deviceorientationabsolute",handler,true);
+    window.addEventListener("deviceorientation",handler,true);
+    readScreenAngle();
+    return true;
+  }catch(err){return false;}
+}
+
+/* =================== CATCH =================== */
+function doCatch(f){
+  const t=f.type, now=Date.now(), firstType=!SAVE.types[f.code];
+  const rec=SAVE.types[f.code]||{count:0,first:now,bestAlt:0,bestGs:0,closest:9999,regs:[]};
+  rec.count++;rec.last=now;
+  rec.bestAlt=Math.max(rec.bestAlt,f.alt);rec.bestGs=Math.max(rec.bestGs,f.gs);
+  rec.closest=Math.min(rec.closest,+f.distNm.toFixed(1));
+  if(f.reg&&f.reg!=="—"&&!rec.regs.includes(f.reg)&&rec.regs.length<400)rec.regs.push(f.reg);
+  SAVE.types[f.code]=rec;
+  const gains=[]; if(firstType&&t.active!==0)gains.push("AIRCRAFT");
+  const bump=(store,key,label)=>{if(!key)return;
+    if(!store[key]){store[key]={first:now,count:0};gains.push(label);}
+    store[key].count=(store[key].count||0)+1;};
+  if(f.op)bump(SAVE.operators,f.op.icao,"AIRLINE");
+  [f.origin,f.dest].forEach(a=>{if(a){bump(SAVE.airports,a.icao,"AIRPORT");bump(SAVE.countries,a.cc,"FLAG");}});
+  if(f.op)bump(SAVE.countries,f.op.cc,"FLAG");
+  SAVE.catches++;
+  SAVE.log.unshift({t:now,code:f.code,call:f.call,reg:f.reg,alt:f.alt,gs:f.gs,dist:+f.distNm.toFixed(1),
+    brg:Math.round(f.brg),elev:Math.round(f.elev),op:f.op?f.op.icao:null,
+    o:f.origin?f.origin.icao:null,d:f.dest?f.dest.icao:null,place:state.label,blocked:f.blocked});
+  if(SAVE.log.length>400)SAVE.log.length=400;
+  save();
+  if(state.trackId===f.id)state.trackId=null;
+  if(navigator.vibrate)navigator.vibrate(firstType?[20,45,30]:16);
+  showCard(f,firstType,gains);
+}
+
+/* =================== CARD =================== */
+function showCard(f,isNew,gains){
+  const t=f.type, tier=tierOf(t), col=cssTier(t), rec=SAVE.types[f.code]||{count:1,regs:[]};
+  const sizePct=Math.round(Math.min(100,(t.span/MAX_SPAN)*100));
+  const route=f.origin&&f.dest;
+  const ov=document.getElementById("overlay");
+  ov.innerHTML=`<div class="stage"><div class="c3d" id="c3d">
+    <div class="face front">
+      <div class="ctop"><span class="no">NO.${String(t.dex).padStart(3,"0")}</span>
+        <span class="no"${isNew?' style="color:#FF5D73"':''}>${isNew?"NEW ENTRY":"CAUGHT ×"+rec.count}</span>
+        <span class="tier" style="background:${col}">${tier.k}</span></div>
+      <div class="art"><span class="wk">WAKE ${WAKE_NAME[t.wake]}</span>${silhouette(t,{fill:"#EAF5FF"})}
+        <div class="sb"><div class="t">SIZE vs THE LARGEST EVER BUILT</div>
+        <div class="bar"><i style="width:${sizePct}%"></i></div></div></div>
+      <div class="cname"><h2>${esc(t.name)}</h2>
+        <div class="mf">${esc(t.mfr)} · ICAO ${esc(t.code)} · ${esc(t.engType)}</div></div>
+      <div class="note">${esc(t.note)}</div>
+      <div class="sg">
+        <div><div class="k">WINGSPAN</div><div class="v">${t.span}<small> M</small></div></div>
+        <div><div class="k">LENGTH</div><div class="v">${t.len}<small> M</small></div></div>
+        <div><div class="k">MAX WEIGHT</div><div class="v">${t.mtow}<small> T</small></div></div>
+        <div><div class="k">RANGE</div><div class="v">${t.range?Math.round(t.range).toLocaleString():"—"}<small>${t.range?" KM":""}</small></div></div>
+        <div><div class="k">CRUISE</div><div class="v">${t.cruise}<small> KT</small></div></div>
+        <div><div class="k">CEILING</div><div class="v">${Math.round(t.ceil/1000)}<small>,000 FT</small></div></div>
+        <div><div class="k">ENGINES</div><div class="v">${t.eng||"NONE"}</div></div>
+        <div><div class="k">SEATS</div><div class="v">${t.pax||"—"}</div></div>
+        <div><div class="k">FIRST FLEW</div><div class="v">${t.ff}</div></div></div>
+      <div class="cfoot"><span>${t.active===0?"NONE STILL FLYING":"≈"+t.active.toLocaleString()+" ACTIVE (APPROX)"}</span>
+        <span>${rec.regs.length} AIRFRAME${rec.regs.length===1?"":"S"} SEEN</span></div>
+    </div>
+    <div class="face back">
+      <div class="ctop"><span class="no">CATCH RECORD</span>
+        <span class="tier" style="background:${col};margin-left:auto">${esc(f.code)}</span></div>
+      <div class="rec"><h3>${esc(f.call)}</h3>
+        <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;color:var(--ink-3);margin-top:5px">
+          ${f.blocked?"REGISTRATION BLOCKED":esc(f.reg)} · ${f.op?esc(f.op.name):(f.mil?"Military / state":"Private operator")}</div>
+        ${route?`<div class="route">
+          <div class="ap"><div class="cc">${f.origin.iata}</div><div class="ci">${f.origin.flag} ${esc(f.origin.city)}</div></div>
+          <div class="arc"><svg viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M3 19 Q50 -4 97 19" fill="none" stroke="#FF6BC1" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <circle cx="3" cy="19" r="2.6" fill="#FF6BC1"/><circle cx="97" cy="19" r="2.6" fill="#FF6BC1"/></svg></div>
+          <div class="ap"><div class="cc">${f.dest.iata}</div><div class="ci">${f.dest.flag} ${esc(f.dest.city)}</div></div></div>`
+        :`<div class="route"><div class="ap" style="flex:1;text-align:left"><div class="cc" style="font-size:16px;color:var(--ink-3)">ROUTE NOT BROADCAST</div></div></div>`}
+        <div class="rl">
+          <div><span class="k">CAUGHT</span><span>${new Date().toLocaleString([],{dateStyle:"medium",timeStyle:"short"})}</span></div>
+          <div><span class="k">STANDING AT</span><span>${esc(state.label)}</span></div>
+          <div><span class="k">ALTITUDE</span><span>${Math.round(f.alt).toLocaleString()} ft</span></div>
+          <div><span class="k">GROUND SPEED</span><span>${f.gs} kt</span></div>
+          <div><span class="k">DISTANCE</span><span>${(+f.distNm).toFixed(1)} nm</span></div>
+          <div><span class="k">BEARING / UP</span><span>${String(Math.round(f.brg)).padStart(3,"0")}° / ${Math.round(f.elev)}°</span></div>
+          <div><span class="k">TIMES CAUGHT</span><span>${rec.count}</span></div></div></div></div>
+    </div>
+    <div class="tapf">TAP THE CARD TO FLIP</div>
+    ${gains&&gains.length?`<div style="text-align:center;margin-top:7px" class="eyebrow">${[...new Set(gains)].map(g=>"+ "+g).join("&nbsp; ")}</div>`:""}
+    <button class="btn solid wide" id="bDone" style="margin-top:15px">CLOSE</button></div>`;
+  ov.classList.add("on");
+  const c=document.getElementById("c3d");
+  c.addEventListener("click",()=>c.classList.toggle("flip"));
+  document.getElementById("bDone").addEventListener("click",()=>{closeOverlay();});
+  if(isNew)toast("NEW — "+t.name.toUpperCase());
+}
+function closeOverlay(){
+  const o=document.getElementById("overlay");o.classList.remove("on");o.innerHTML="";
+  state.lockMs=0;state.lockId=null;
+  const r=document.getElementById("lockRing"); if(r)r.setAttribute("stroke-dashoffset","289");
+  if(!state.huntOn)renderAll();
+}
+
+/* =================== DEX (locked until collected) =================== */
+function renderDex(){
+  const host=document.getElementById("dexHost"),tab=state.dexTab;
+  const big=document.getElementById("dBig"),bar=document.getElementById("dBar"),lbl=document.getElementById("dLbl");
+  const filt=document.getElementById("filt");
+  const setP=(g,tot,label)=>{big.innerHTML=`${g}<small>/${tot}</small>`;
+    bar.style.width=(tot?g/tot*100:0)+"%";lbl.textContent=label;};
+
+  if(tab==="types"){
+    filt.style.display="flex";
+    const cats=["ALL",...Object.keys(CLASSES)];
+    filt.innerHTML=cats.map(c=>`<button data-f="${c}" class="${state.filter===c?"on":""}">${c.toUpperCase()}</button>`).join("");
+    filt.querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click",()=>{state.filter=b.dataset.f;renderDex();}));
+    let list=state.filter==="ALL"?TYPE_LIST:TYPE_LIST.filter(CLASSES[state.filter]);
+    const found=list.filter(t=>SAVE.types[t.code]);
+    setP(found.length,list.length,state.filter==="ALL"?"AIRCRAFT LOGGED":state.filter.toUpperCase()+" LOGGED");
+    host.className="grid";
+    if(!found.length){
+      host.className="";
+      host.innerHTML=`<div class="empty"><h3>NOTHING LOGGED YET</h3>
+        <p>Aircraft only appear here once you have caught one. ${list.length} are out there.</p></div>`;
+      return;
+    }
+    const unknown=list.length-found.length;
+    const blanks=Math.min(unknown,24);
+    host.innerHTML=found.map(t=>{
+      const rec=SAVE.types[t.code],col=cssTier(t);
+      return `<button class="cell" data-t="${t.code}" style="--r-common:${col}">
+        <span class="n">×${rec.count}</span>
+        <div class="sil">${silhouette(t,{fill:"#EAF5FF",trueScale:false})}</div>
+        <div class="code">${esc(t.code)}</div><div class="nm">${esc(t.name)}</div></button>`;}).join("")
+      + Array.from({length:blanks},()=>`<div class="cell blank"><span class="q">???</span></div>`).join("");
+    if(unknown>blanks)host.insertAdjacentHTML("afterend","");
+    host.querySelectorAll("[data-t]").forEach(b=>b.addEventListener("click",()=>openDexCard(b.dataset.t)));
+    if(unknown)host.innerHTML+=`<div style="grid-column:1/-1;text-align:center;padding:14px 0 0"
+      class="eyebrow">${unknown} STILL UNIDENTIFIED</div>`;
+    host.querySelectorAll("[data-t]").forEach(b=>b.addEventListener("click",()=>openDexCard(b.dataset.t)));
+  }
+  else if(tab==="operators"){
+    filt.style.display="none";
+    const got=OPERATOR_LIST.filter(o=>SAVE.operators[o.icao]);
+    setP(got.length,OPERATOR_LIST.length,"AIRLINES LOGGED");
+    host.className="rows";
+    host.innerHTML=got.sort((a,b)=>SAVE.operators[b.icao].count-SAVE.operators[a.icao].count).map(o=>{
+      const r=SAVE.operators[o.icao];
+      return `<div class="ri"><span class="fl">${o.flag}</span><span class="cc">${esc(o.icao)}</span>
+        <span class="nm">${esc(o.name)}</span><span class="n">×${r.count}</span></div>`;}).join("")
+      || `<div class="empty"><h3>NO AIRLINES YET</h3><p>Catch an airliner and its operator is logged here.</p></div>`;
+  }
+  else if(tab==="airports"){
+    filt.style.display="none";
+    const got=AIRPORT_LIST.filter(a=>SAVE.airports[a.icao]);
+    setP(got.length,AIRPORT_LIST.length,"AIRPORTS LOGGED");
+    host.className="rows";
+    host.innerHTML=got.sort((a,b)=>SAVE.airports[b.icao].count-SAVE.airports[a.icao].count).map(a=>{
+      const r=SAVE.airports[a.icao];
+      return `<div class="ri"><span class="fl">${a.flag}</span><span class="cc">${esc(a.iata)}</span>
+        <span class="nm">${esc(a.city)}<span style="color:var(--ink-3);font-size:11px"> · ${esc(a.icao)}</span></span>
+        <span class="n">×${r.count}</span></div>`;}).join("")
+      || `<div class="empty"><h3>NO AIRPORTS YET</h3><p>Catch a flight that is broadcasting a route.</p></div>`;
+  }
+  else{
+    filt.style.display="none";
+    const got=Object.keys(SAVE.countries).length;
+    setP(got,COUNTRY_LIST.length,"FLAGS COLLECTED");
+    host.className="fgrid";
+    host.innerHTML=COUNTRY_LIST.map(c=>{const r=SAVE.countries[c.cc];
+      return `<div class="fc ${r?"":"locked"}">${r?`<span class="n">×${r.count}</span>`:""}
+        <span class="fl">${c.flag}</span><span class="cc">${r?esc(c.cc):"··"}</span>
+        <span class="nm">${r?esc(c.name):"—"}</span></div>`;}).join("");
+  }
+}
+function openDexCard(code){
+  const t=TYPES[code],rec=SAVE.types[code]; if(!rec)return;
+  showCard({type:t,code,call:t.name.toUpperCase(),reg:rec.regs[0]||"—",op:null,mil:false,
+    alt:rec.bestAlt,gs:rec.bestGs,distNm:rec.closest,brg:0,elev:0,origin:null,dest:null,blocked:false},false,[]);
+}
+function renderLog(){
+  document.getElementById("lBig").innerHTML=`${SAVE.catches}<small> CATCHES</small>`;
+  const host=document.getElementById("logHost");
+  if(!SAVE.log.length){host.innerHTML=`<div class="empty" style="margin:0"><h3>NOTHING LOGGED</h3>
+    <p>Every catch lands here with its altitude, speed, route and where you were standing.</p></div>`;return;}
+  host.innerHTML=SAVE.log.slice(0,120).map(l=>{
+    const t=TYPES[l.code]||{active:500},col=cssTier(t),op=l.op?OPERATORS[l.op]:null;
+    const rt=l.o&&l.d&&AIRPORTS[l.o]&&AIRPORTS[l.d]?` · ${AIRPORTS[l.o].iata}→${AIRPORTS[l.d].iata}`:"";
+    return `<div class="li"><div class="edge" style="background:${col}"></div><div class="c">
+      <div class="t">${esc(l.call)} · ${esc(l.code)}</div>
+      <div class="m">${new Date(l.t).toLocaleString([],{dateStyle:"short",timeStyle:"short"})} · ${Math.round(l.alt).toLocaleString()}FT · ${l.gs}KT · ${l.dist}NM${rt}</div>
+      <div class="m">${esc(l.blocked?"BLOCKED":l.reg)}${op?" · "+esc(op.name):""} · ${esc(String(l.place).toUpperCase())}</div>
+      </div></div>`;}).join("");
+}
+
+/* =================== SETTINGS =================== */
+function openSettings(){
+  const sh=document.getElementById("sheet");
+  document.getElementById("sheetIn").innerHTML=`
+    <h3>STATION SETUP</h3>
+    <p>Where you are standing and how far the scope reaches. Everything stays on this device.</p>
+    <div class="f"><label>POSITION</label><div class="two">
+      <input id="iLat" inputmode="decimal" value="${state.lat}" aria-label="Latitude">
+      <input id="iLon" inputmode="decimal" value="${state.lon}" aria-label="Longitude"></div></div>
+    <div class="f"><label>PLACE NAME</label><input id="iLbl" value="${esc(state.label)}"></div>
+    <button class="btn wide sm" id="bGeo" style="margin-bottom:15px">USE MY LOCATION</button>
+    <div class="f"><label>JUMP TO A BUSY SKY</label></div>
+    <div class="chips">${["KDEN","KATL","KORD","KLAX","KJFK","EGLL","EHAM","LFPG","OMDB","RJTT","WSSS","YSSY"]
+      .map(k=>`<button data-ap="${k}">${AIRPORTS[k].flag} ${AIRPORTS[k].iata}</button>`).join("")}</div>
+    <div class="f"><label id="lRange">SCOPE RANGE — ${state.rangeNm} NM</label>
+      <input id="iRange" type="range" min="10" max="180" step="5" value="${state.rangeNm}"></div>
+    <div class="f"><label>LIVE FEED PROXY (OPTIONAL)</label>
+      <input id="iProxy" placeholder="https://your-worker.workers.dev/v2" value="${esc(state.proxy)}"></div>
+    <p>Live aircraft come from airplanes.live, which browsers block cross-origin. Point this at your own
+      cached proxy. Leave it empty to try direct, then fall back to a simulated sky.</p>
+    <button class="btn solid wide" id="bLive">${state.live?"USE SIMULATED SKY":"TRY LIVE FEED"}</button>
+    <button class="btn wide" id="bComp" style="margin-top:9px">ENABLE COMPASS AIMING</button>
+    <button class="btn wide" id="bSave" style="margin-top:15px">SAVE AND CLOSE</button>
+    <button class="btn wide danger" id="bWipe" style="margin-top:9px">ERASE COLLECTION</button>
+    <p style="margin-top:16px;font-size:11.5px;color:var(--ink-3)">Camera, compass and GPS only work over
+      HTTPS. Host this file and add it to your home screen to use it properly outdoors.</p>`;
+  sh.classList.add("on");
+  const $=i=>document.getElementById(i);
+  $("iRange").addEventListener("input",e=>{state.rangeNm=+e.target.value;
+    $("lRange").textContent=`SCOPE RANGE — ${state.rangeNm} NM`;});
+  sh.querySelectorAll("[data-ap]").forEach(b=>b.addEventListener("click",()=>{
+    const a=AIRPORTS[b.dataset.ap];$("iLat").value=a.lat;$("iLon").value=a.lon;$("iLbl").value=a.city;}));
+  $("bGeo").addEventListener("click",()=>{
+    if(!navigator.geolocation){toast("No location available here");return;}
+    $("bGeo").textContent="LOCATING…";
+    navigator.geolocation.getCurrentPosition(p=>{$("iLat").value=p.coords.latitude.toFixed(4);
+      $("iLon").value=p.coords.longitude.toFixed(4);$("iLbl").value="My position";
+      $("bGeo").textContent="LOCATION SET";},
+      ()=>{$("bGeo").textContent="BLOCKED — TYPE IT ABOVE";},{timeout:9000,enableHighAccuracy:true});});
+  $("bComp").addEventListener("click",async()=>{
+    await enableCompass();
+    setTimeout(()=>{$("bComp").textContent=state.hasCompass?"COMPASS ON":"NO COMPASS ON THIS DEVICE";
+      toast(state.hasCompass?"Compass on — aim with your phone":"No compass, drag to look around");},900);});
+  $("bLive").addEventListener("click",()=>{state.live=!state.live;apply();sh.classList.remove("on");
+    setPill(state.live,state.live?"…":"SIM");startLoop();});
+  $("bSave").addEventListener("click",()=>{apply();sh.classList.remove("on");startLoop();});
+  $("bWipe").addEventListener("click",()=>{if(!confirm("Erase every catch, permanently?"))return;
+    SAVE={types:{},operators:{},airports:{},countries:{},log:[],catches:0};save();renderAll();
+    sh.classList.remove("on");toast("Collection erased");});
+  function apply(){
+    const la=parseFloat($("iLat").value),lo=parseFloat($("iLon").value);
+    if(!isNaN(la)&&!isNaN(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180){state.lat=la;state.lon=lo;}
+    state.label=$("iLbl").value.trim()||"Unknown position";
+    state.proxy=$("iProxy").value.trim();state.traffic=[];applySky(true);}
+}
+
+/* =================== SHELL =================== */
+const ESCMAP={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>ESCMAP[c]);}
+let tT=null;
+function toast(m){const e=document.getElementById("toast");e.textContent=m;e.classList.add("on");
+  clearTimeout(tT);tT=setTimeout(()=>e.classList.remove("on"),2600);}
+function renderAll(){renderScope();renderList();renderDex();renderLog();}
+
+(function stars(){
+  const c=document.getElementById("stars"),x=c.getContext("2d");
+  let pts=null;
+  function draw(){
+    const w=c.width=innerWidth,h=c.height=innerHeight;
+    if(!pts)pts=Array.from({length:140},()=>({x:Math.random(),y:Math.random()*.74,
+      a:Math.random()*.85,r:Math.random()<.12?1.5:.8}));
+    x.clearRect(0,0,w,h);
+    pts.forEach(p=>{x.beginPath();x.arc(p.x*w,p.y*h,p.r,0,6.29);
+      x.fillStyle=`rgba(220,240,255,${(p.a*(1-p.y/.9)).toFixed(2)})`;x.fill();});
+  }
+  draw();let t;addEventListener("resize",()=>{clearTimeout(t);t=setTimeout(draw,220);});
+})();
+
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",async()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  const v=b.dataset.view, hunt=document.getElementById("huntLayer");
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("on"));
+  if(v==="hunt"){
+    state.huntOn=true;state.lastFrame=0;hunt.classList.add("on");
+    mkNodes.forEach(n=>n.remove());mkNodes.clear();
+    readScreenAngle();
+    if(!state.hasCompass)await enableCompass();
+    if(!state.camOn)await startCamera();
+    if(!huntRaf)huntRaf=requestAnimationFrame(huntFrame);
+  } else {
+    state.huntOn=false;hunt.classList.remove("on");stopCamera();
+    if(huntRaf){cancelAnimationFrame(huntRaf);huntRaf=null;}
+    document.getElementById("v-"+v).classList.add("on");
+    scrollTo({top:0});
+    if(v==="dex")renderDex(); else if(v==="log")renderLog(); else {renderScope();renderList();}
+  }
+}));
+document.getElementById("tabs").addEventListener("click",e=>{
+  const t=e.target.closest(".tab");if(!t)return;
+  document.querySelectorAll("#tabs .tab").forEach(x=>x.classList.remove("on"));
+  t.classList.add("on");state.dexTab=t.dataset.tab;renderDex();});
+document.getElementById("btnSet").addEventListener("click",openSettings);
+document.getElementById("sheet").addEventListener("click",e=>{if(e.target.id==="sheet")e.currentTarget.classList.remove("on");});
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeOverlay();});
+addEventListener("orientationchange",readScreenAngle);
+if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener("change",readScreenAngle);
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){clearInterval(loop);loop=null;}
+  else if(!loop)startLoop();});
+
+(async function boot(){
+  await load();
+  bindHuntDrag(); readScreenAngle(); applySky(true);
+  setInterval(()=>applySky(false),60000);
+  setPill(false,"SIM");
+  for(let i=0;i<11;i++)state.traffic.push(makeFlight());
+  renderAll();
+  // hosted? the bundled proxy exists, so go straight to real aircraft
+  if(location.protocol==="https:"||location.protocol==="http:"){state.live=true;setPill(false,"…");}
+  startLoop();
+  if(!SAVE.catches)setTimeout(()=>toast("Open HUNT, aim at a plane, hold it for two seconds"),1500);
+})();
+
+</script>
+</body>
+</html>
