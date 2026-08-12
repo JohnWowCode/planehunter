@@ -343,6 +343,7 @@ nav button.on svg{opacity:1}
       <div class="sweep"></div><svg id="scopeSvg" viewBox="0 0 400 400" aria-label="Radar scope"></svg>
     </div></div></div>
     <div class="meta"><span id="mPos">—</span><span><b id="mCount">0</b> IN RANGE · <span id="mRange">40</span> NM</span></div>
+    <div class="meta" style="padding-top:0"><span id="mFresh">—</span><span id="mSrc"></span></div>
     <div class="list" id="listHost"></div>
   </section>
 
@@ -944,13 +945,56 @@ function drawSil(t,o){
 function wrap(i,w,h){return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${i}</svg>`;}
 
 /* =================== STORAGE =================== */
-const KEY="planehunter:save:v3";
+const KEY="planehunter:save:v3", STATION_KEY="planehunter:station:v1";
 let SAVE={types:{},operators:{},airports:{},countries:{},log:[],catches:0};
-async function load(){try{const r=await window.storage.get(KEY);if(r&&r.value)SAVE=Object.assign(SAVE,JSON.parse(r.value));}catch(e){}}
-let sT=null;
-function save(){clearTimeout(sT);sT=setTimeout(async()=>{try{await window.storage.set(KEY,JSON.stringify(SAVE));}catch(e){}},500);}
+
+/* This used to call window.storage, which no browser provides, with both paths
+   wrapped in a silent catch — so every catch was thrown away and each reload
+   came back to an empty DEX. localStorage is the real thing. window.storage is
+   still honoured first in case a host injects one, and a failure now says so
+   instead of disappearing. */
+async function load(){
+  try{
+    if(window.storage&&window.storage.get){
+      const r=await window.storage.get(KEY);
+      if(r&&r.value){SAVE=Object.assign(SAVE,JSON.parse(r.value));return;}
+    }
+    const v=localStorage.getItem(KEY);
+    if(v)SAVE=Object.assign(SAVE,JSON.parse(v));
+  }catch(e){}
+}
+let sT=null, saveFailed=false;
+function save(){clearTimeout(sT);sT=setTimeout(async()=>{
+  try{
+    if(window.storage&&window.storage.set){await window.storage.set(KEY,JSON.stringify(SAVE));return;}
+    localStorage.setItem(KEY,JSON.stringify(SAVE));
+  }catch(e){
+    if(!saveFailed){saveFailed=true;toast("Cannot save on this device — private browsing?");}
+  }
+},500);}
+
+/* Where you are standing, and how you like the scope set up. Kept apart from the
+   collection so wiping one does not take the other. */
+function loadStation(){
+  try{
+    const j=JSON.parse(localStorage.getItem(STATION_KEY)||"null"); if(!j)return;
+    if(isFinite(j.lat)&&isFinite(j.lon)&&Math.abs(j.lat)<=90&&Math.abs(j.lon)<=180){
+      state.lat=j.lat;state.lon=j.lon;state.located=!!j.located;
+      if(j.label)state.label=j.label;
+    }
+    if(isFinite(j.rangeNm))state.rangeNm=Math.max(10,Math.min(180,j.rangeNm));
+    if(isFinite(j.declination))state.declination=j.declination;
+    if(isFinite(j.elevM))state.elevM=j.elevM;
+  }catch(e){}
+}
+function saveStation(){
+  try{localStorage.setItem(STATION_KEY,JSON.stringify({lat:state.lat,lon:state.lon,
+    label:state.label,located:state.located,rangeNm:state.rangeNm,
+    declination:state.declination,elevM:state.elevM}));}catch(e){}
+}
 
 const state={lat:39.7392,lon:-104.9903,label:"Denver, CO",rangeNm:40,live:false,proxy:"",
+  located:false,geoAcc:null,elevM:0,declination:0,lastFix:0,feedErr:"",userPlace:false,
   traffic:[],dexTab:"types",filter:"ALL",
   hasCompass:false,trueNorth:false,alpha:0,beta:90,gamma:0,screenAngle:0,
   viewYaw:0,viewPitch:20,camOn:false,huntOn:false,trackId:null,
@@ -964,9 +1008,13 @@ function distKm(a,b,c,d){const p=toRad(c-a),q=toRad(d-b);
 function bearing(a,b,c,d){const y=Math.sin(toRad(d-b))*Math.cos(toRad(c));
   const x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(toRad(d-b));
   return (toDeg(Math.atan2(y,x))+360)%360;}
-function elevation(groundKm,ft){
-  const h=ft*0.0003048;
-  if(groundKm<0.01)return 90;
+function elevation(groundKm,ft,obsFt){
+  // Aircraft altitude is above sea level, but what you aim at is height above
+  // YOU. Ignoring the observer put everything too high for anyone off sea
+  // level: standing in Denver, an airliner at 31,000ft is 25,600ft overhead,
+  // not 31,000, and the marker sat well above the real aircraft.
+  const h=(ft-(obsFt||0))*0.0003048;
+  if(groundKm<0.01)return h>=0?90:-90;
   // account for Earth curvature over long slant ranges
   return toDeg(Math.atan2(h-groundKm*groundKm/12742,groundKm));}
 
@@ -1197,8 +1245,24 @@ function simTick(){
   const target=9+Math.round(Math.random()*6);
   while(state.traffic.length<target)state.traffic.push(makeFlight());
 }
+/* The cache key is the whole URL. Sending four decimals — eleven metres — gave
+   every position its own cache entry, so the edge cache almost never hit: each
+   poll was a fresh function invocation and a fresh upstream call, and it got
+   worse the more you moved. Snapping here instead of inside the proxy means
+   everyone in the same ~10km cell shares one cached response, and your exact
+   position genuinely does not leave the device.
+   The radius is padded and rounded for the same reason: the snapped centre can
+   sit up to ~4NM from where you actually are, and a handful of radius values
+   keeps the number of distinct cache keys small. */
+const FEED_GRID=0.1;
+function feedParams(){
+  const la=(Math.round(state.lat/FEED_GRID)*FEED_GRID).toFixed(1);
+  const lo=(Math.round(state.lon/FEED_GRID)*FEED_GRID).toFixed(1);
+  const r=Math.max(10,Math.min(250,Math.ceil((state.rangeNm+6)/10)*10));
+  return {la,lo,r};
+}
 function feedUrl(){
-  const la=state.lat.toFixed(4), lo=state.lon.toFixed(4), r=Math.round(state.rangeNm);
+  const {la,lo,r}=feedParams();
   if(state.proxy)return `${state.proxy.replace(/\/$/,"")}/point/${la}/${lo}/${r}`;
   // when hosted, api/planes.js proxies and caches airplanes.live for us
   if(location.protocol==="http:"||location.protocol==="https:")
@@ -1221,12 +1285,21 @@ async function fetchLive(){
       tip:"none",ff:0,pax:0,ceil:45000,engType:"Turbofan",note:"Not in the reference library yet."};
     const cs=(a.flight||"").trim();
     const p=prev.get(a.hex);
-    const alt=typeof a.alt_baro==="number"?a.alt_baro:(a.alt_geom||0);
+    // alt_baro is the string "ground" for anything on a taxiway. Falling through
+    // to alt_geom then handed back the FIELD elevation — a mile up at Denver —
+    // so parked aircraft were drawn as though airborne.
+    const onGround=a.alt_baro==="ground";
+    const alt=onGround?0:(typeof a.alt_baro==="number"?a.alt_baro:(a.alt_geom||0));
+    // seen_pos is how many seconds ago the position was actually reported. Dead
+    // reckoning from "now" instead of from the real fix time dragged every
+    // aircraft ahead of where it was.
+    const fixAge=Math.min(60,Math.max(0,Number(a.seen_pos)||0));
     return {id:a.hex,hex:a.hex,code:t.code,type:t,op:OPERATORS[cs.slice(0,3).toUpperCase()]||null,
       mil:a.dbFlags===1,call:cs||a.r||String(a.hex).toUpperCase(),reg:a.r||"—",lat:a.lat,lon:a.lon,
-      alt,gs:Math.round(a.gs||0),
+      alt,ground:onGround,gs:Math.round(a.gs||0),
       rlat:p?p.rlat:undefined,rlon:p?p.rlon:undefined,ralt:p?p.ralt:undefined,
-      track:Math.round(a.track||0),blocked:false,origin:null,dest:null,live:true,seen:Date.now()};});
+      track:Math.round(a.track||0),blocked:false,origin:null,dest:null,live:true,
+      seen:Date.now()-fixAge*1000};});
 }
 let loop=null, NEAR=[];
 
@@ -1258,20 +1331,77 @@ function nearby(){
     const la=f.rlat!==undefined?f.rlat:f.lat, lo=f.rlon!==undefined?f.rlon:f.lon;
     const al=f.ralt!==undefined?f.ralt:f.alt;
     const g=distKm(state.lat,state.lon,la,lo);
-    f.distNm=g/NM; f.brg=bearing(state.lat,state.lon,la,lo); f.elev=elevation(g,al);
+    f.distNm=g/NM; f.brg=bearing(state.lat,state.lon,la,lo);
+    f.elev=elevation(g,al,state.elevM/0.3048);
     f.overHorizon=f.elev<0; return f;})
     .filter(f=>f.distNm<=state.rangeNm).sort((a,b)=>a.distNm-b.distNm);
   return NEAR;
 }
 async function tick(){
   if(state.live){
-    try{state.traffic=await fetchLive();setPill(true,"LIVE");}
-    catch(e){state.live=false;setPill(false,"SIM");toast("Live feed unreachable — simulated sky");startLoop();return;}
+    try{state.traffic=await fetchLive();state.lastFix=Date.now();state.feedErr="";setPill(true,"LIVE");}
+    catch(e){state.live=false;setPill(false,"SIM");state.feedErr="FEED UNREACHABLE";
+      toast("Live feed unreachable — simulated sky");startLoop();return;}
   } else simTick();
   if(!state.huntOn){coast(performance.now());renderScope();renderList();}
   applySky(false);
 }
-function startLoop(){clearInterval(loop);tick();loop=setInterval(tick,state.live?6000:1200);}
+/* 10s matches the edge cache window, so a poll that lands mid-window is served
+   by the CDN and never reaches the function or airplanes.live at all. */
+const LIVE_MS=10000, SIM_MS=1200;
+function startLoop(){clearInterval(loop);tick();loop=setInterval(tick,state.live?LIVE_MS:SIM_MS);}
+
+/* The app never asked where you were. It shipped with Denver hard-coded and
+   went straight to the live feed, so unless you dug into settings you were
+   shown real aircraft — genuinely flying, just a thousand miles away. That is
+   the whole "the planes it says are around aren't actually there" problem.
+   Now: locate on start, keep tracking as you walk, and never present remote
+   traffic as if it were overhead. */
+let geoWatch=null, geoAsked=false;
+function onFix(p){
+  const la=p.coords.latitude, lo=p.coords.longitude;
+  if(!isFinite(la)||!isFinite(lo))return;
+  const movedKm=state.located?distKm(state.lat,state.lon,la,lo):0;
+  state.lat=la;state.lon=lo;state.geoAcc=p.coords.accuracy;
+  if(typeof p.coords.altitude==="number"&&isFinite(p.coords.altitude))state.elevM=p.coords.altitude;
+  const first=!state.located;
+  if(first){state.located=true;if(!state.userPlace)state.label="My position";}
+  // watchPosition can fire every second. Only do the expensive work — writing
+  // storage, recomputing the sky, rebuilding the scope — when it actually
+  // matters, or this quietly eats the battery it is meant to serve.
+  if(first||movedKm>0.05){
+    saveStation();applySky(first);
+    if(!state.huntOn){renderScope();renderList();}
+  }
+  // Re-centre the feed on the first fix, or once you have walked far enough
+  // that the snapped grid cell is no longer the one you are standing in.
+  if(first||movedKm>4){
+    state.traffic=[];
+    if(canGoLive()){state.live=true;setPill(false,"…");}
+    startLoop();
+    if(first)toast("Located — showing aircraft actually near you");
+  }
+}
+function onGeoFail(err){
+  if(state.located)return;         // already have a position; a later error is noise
+  state.live=false;setPill(false,"SIM");
+  state.feedErr=err&&err.code===1?"LOCATION DENIED":"NO LOCATION";
+  toast("No location — this is a simulated sky. Set your position in settings.");
+  startLoop();
+}
+const canGoLive=()=>location.protocol==="https:"||location.protocol==="http:";
+function startGeo(){
+  if(!navigator.geolocation){onGeoFail(null);return;}
+  if(geoAsked)return; geoAsked=true;
+  navigator.geolocation.getCurrentPosition(onFix,onGeoFail,
+    {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  // Keep following: bearings are computed from where you stand, so a stale
+  // position quietly rotates every marker off target as you move.
+  try{
+    geoWatch=navigator.geolocation.watchPosition(onFix,()=>{},
+      {enableHighAccuracy:true,timeout:30000,maximumAge:15000});
+  }catch(e){}
+}
 function setPill(on,txt){const p=document.getElementById("pill");p.classList.toggle("on",on);
   document.getElementById("pilltxt").textContent=txt;}
 
@@ -1303,6 +1433,24 @@ function renderScope(){
   document.getElementById("mCount").textContent=list.length;
   document.getElementById("mRange").textContent=state.rangeNm;
   document.getElementById("mPos").textContent=`${state.lat.toFixed(3)} / ${state.lon.toFixed(3)} · ${state.label.toUpperCase()}`;
+  drawFreshness();
+}
+/* Say out loud where the sky came from and how old it is. Without this there
+   was no way to tell a live feed from the simulator, or a working refresh from
+   a stalled one — it just looked like plausible aircraft either way. */
+function drawFreshness(){
+  const f=document.getElementById("mFresh"), s=document.getElementById("mSrc");
+  if(!f)return;
+  if(!state.live){
+    f.textContent=state.located?(state.feedErr||"SIMULATED SKY"):"SIMULATED SKY — NOT LOCATED";
+    f.style.color="var(--amber)";
+    s.textContent=state.located?"":"SET YOUR POSITION IN SETTINGS";
+    return;
+  }
+  const age=state.lastFix?Math.round((Date.now()-state.lastFix)/1000):null;
+  f.style.color=age!==null&&age>LIVE_MS/1000*3?"var(--amber)":"var(--ink-3)";
+  f.textContent=age===null?"WAITING FOR FIRST FIX…":`UPDATED ${age}S AGO`;
+  s.textContent=`AIRPLANES.LIVE · EVERY ${LIVE_MS/1000}S`;
 }
 function renderList(){
   const host=document.getElementById("listHost"), list=nearby().slice(0,16);
@@ -1535,6 +1683,10 @@ async function enableCompass(){
       } else if(e.alpha!==null){
         a=e.alpha; if(absolute||e.absolute===true)state.trueNorth=true;
       } else return;
+      // Heading is 360-alpha, so shifting the heading east by the declination
+      // means subtracting it here. Aircraft bearings are true north; the
+      // magnetometer is not, and the difference rotates every marker.
+      if(state.declination)a=(a-state.declination+360)%360;
       feedOrientation(a, e.beta!==null?e.beta:state.beta,
                          e.gamma!==null?e.gamma:state.gamma, performance.now());
     };
@@ -1745,6 +1897,10 @@ function openSettings(){
   document.getElementById("sheetIn").innerHTML=`
     <h3>STATION SETUP</h3>
     <p>Where you are standing and how far the scope reaches. Everything stays on this device.</p>
+    <p style="color:${state.located?"var(--cyan)":"var(--amber)"};font-family:var(--mono);font-size:10px;letter-spacing:.1em">
+      ${state.located
+        ? `LOCATED${state.geoAcc?" ±"+Math.round(state.geoAcc)+"M":""}${state.elevM?" · "+Math.round(state.elevM)+"M ELEVATION":""}`
+        : "NOT LOCATED — THE SKY BELOW IS SIMULATED, NOT WHAT IS OVER YOU"}</p>
     <div class="f"><label>POSITION</label><div class="two">
       <input id="iLat" inputmode="decimal" value="${state.lat}" aria-label="Latitude">
       <input id="iLon" inputmode="decimal" value="${state.lon}" aria-label="Longitude"></div></div>
@@ -1755,6 +1911,12 @@ function openSettings(){
       .map(k=>`<button data-ap="${k}">${AIRPORTS[k].flag} ${AIRPORTS[k].iata}</button>`).join("")}</div>
     <div class="f"><label id="lRange">SCOPE RANGE — ${state.rangeNm} NM</label>
       <input id="iRange" type="range" min="10" max="180" step="5" value="${state.rangeNm}"></div>
+    <div class="f"><label>MAGNETIC DECLINATION (° EAST)</label>
+      <input id="iDec" inputmode="decimal" value="${state.declination}"></div>
+    <p>Your phone's compass points at magnetic north; aircraft bearings are true north. The gap runs
+      from about 20° west to 15° east across the United States, and it rotates every marker off target
+      by that much. Look yours up on NOAA's declination calculator and type it in — east positive,
+      west negative. If aiming already lines up, leave it at zero.</p>
     <div class="f"><label>LIVE FEED PROXY (OPTIONAL)</label>
       <input id="iProxy" placeholder="https://your-worker.workers.dev/v2" value="${esc(state.proxy)}"></div>
     <p>Live aircraft come from airplanes.live, which browsers block cross-origin. Point this at your own
@@ -1776,7 +1938,8 @@ function openSettings(){
     $("bGeo").textContent="LOCATING…";
     navigator.geolocation.getCurrentPosition(p=>{$("iLat").value=p.coords.latitude.toFixed(4);
       $("iLon").value=p.coords.longitude.toFixed(4);$("iLbl").value="My position";
-      $("bGeo").textContent="LOCATION SET";},
+      $("bGeo").textContent="LOCATION SET";
+      geoAsked=false;startGeo();},                 // also start following from here on
       ()=>{$("bGeo").textContent="BLOCKED — TYPE IT ABOVE";},{timeout:9000,enableHighAccuracy:true});});
   $("bComp").addEventListener("click",async()=>{
     await enableCompass();
@@ -1790,9 +1953,19 @@ function openSettings(){
     sh.classList.remove("on");toast("Collection erased");});
   function apply(){
     const la=parseFloat($("iLat").value),lo=parseFloat($("iLon").value);
-    if(!isNaN(la)&&!isNaN(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180){state.lat=la;state.lon=lo;}
+    if(!isNaN(la)&&!isNaN(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180){
+      state.lat=la;state.lon=lo;
+      // A position typed in by hand is a real station, so the feed may go live
+      // against it — that was always allowed, it just never happened by default.
+      state.located=true;
+    }
+    const dec=parseFloat($("iDec").value);
+    state.declination=isFinite(dec)&&Math.abs(dec)<=180?dec:0;
     state.label=$("iLbl").value.trim()||"Unknown position";
-    state.proxy=$("iProxy").value.trim();state.traffic=[];applySky(true);}
+    state.userPlace=true;
+    state.proxy=$("iProxy").value.trim();state.traffic=[];
+    if(!state.live&&canGoLive()&&state.located){state.live=true;setPill(false,"…");}
+    saveStation();applySky(true);}
 }
 
 /* =================== SHELL =================== */
@@ -1852,14 +2025,19 @@ document.addEventListener("visibilitychange",()=>{
 
 (async function boot(){
   await load();
+  loadStation();
   bindHuntDrag(); readScreenAngle(); applySky(true);
   setInterval(()=>applySky(false),60000);
+  setInterval(drawFreshness,1000);
   setPill(false,"SIM");
   for(let i=0;i<11;i++)state.traffic.push(makeFlight());
   renderAll();
-  // hosted? the bundled proxy exists, so go straight to real aircraft
-  if(location.protocol==="https:"||location.protocol==="http:"){state.live=true;setPill(false,"…");}
+  // Only go live once we know where "here" is. Going live against the default
+  // position is what made the app confidently list aircraft that were nowhere
+  // near you. A position remembered from last time counts.
+  if(canGoLive()&&state.located){state.live=true;setPill(false,"…");}
   startLoop();
+  startGeo();
   if(!SAVE.catches)setTimeout(()=>toast("Open HUNT, aim at a plane, hold it for two seconds"),1500);
 })();
 
